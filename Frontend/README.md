@@ -25,7 +25,7 @@ Follow this step-by-step testing protocol to simulate a real digital forensics i
 
 ### Step 1: Create a Test File (Your Evidence)
 To test the cryptographic hashing and integrity check, you need a sample file:
-1.  Open **Notepad** (or any text editor) on your computer.x    
+1.  Open **Notepad** (or any text editor) on your computer.
 2.  Type a sample sentence (e.g., `Forensic Image copy of Server logs - August 2026`).
 3.  Save the file to your Desktop as **`evidence.txt`**.
 

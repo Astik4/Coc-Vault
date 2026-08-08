@@ -25,7 +25,48 @@
 </head>
 <body>
 
-  <div id="app-container">
+  <!-- ==========================================
+       AUTH OVERLAY (login / register)
+       Shown until a valid session token exists.
+       ========================================== -->
+  <div id="auth-overlay" style="display: flex; align-items: center; justify-content: center; min-height: 100vh; background: var(--bg-main, #f4f6f9); font-family: 'Inter', sans-serif;">
+    <div style="width: 100%; max-width: 380px; padding: 40px 32px; background: #ffffff; border: 1px solid var(--border-color, #e2e8f0); border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.06);">
+      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 24px; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 1.3rem; color: var(--primary, #1d4ed8);">
+        <i data-lucide="shield-check"></i>
+        <span>CoC Vault</span>
+      </div>
+
+      <h2 id="auth-title" style="margin: 0 0 4px 0; font-size: 1.1rem;">Sign In to CoC Vault</h2>
+      <p style="margin: 0 0 20px 0; font-size: 0.85rem; color: var(--text-muted, #64748b);">Digital Forensics Chain of Custody System</p>
+
+      <div id="auth-error" style="display: none; background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; padding: 10px 12px; border-radius: 6px; font-size: 0.82rem; margin-bottom: 16px;"></div>
+
+      <form id="auth-form">
+        <div id="auth-displayname-group" style="display: none; margin-bottom: 14px;">
+          <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 4px;">Display Name</label>
+          <input type="text" id="auth-displayname" placeholder="e.g. Agent Sarah Jenkins" style="width: 100%; padding: 9px 10px; border: 1px solid var(--border-color, #e2e8f0); border-radius: 6px; font-size: 0.9rem; box-sizing: border-box;">
+        </div>
+
+        <div style="margin-bottom: 14px;">
+          <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 4px;">Username</label>
+          <input type="text" id="auth-username" required style="width: 100%; padding: 9px 10px; border: 1px solid var(--border-color, #e2e8f0); border-radius: 6px; font-size: 0.9rem; box-sizing: border-box;">
+        </div>
+
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 4px;">Password</label>
+          <input type="password" id="auth-password" required minlength="8" style="width: 100%; padding: 9px 10px; border: 1px solid var(--border-color, #e2e8f0); border-radius: 6px; font-size: 0.9rem; box-sizing: border-box;">
+        </div>
+
+        <button type="submit" id="auth-submit-btn" class="btn btn-primary" style="width: 100%; padding: 10px; font-size: 0.9rem;">Sign In</button>
+      </form>
+
+      <p style="text-align: center; margin-top: 18px;">
+        <a href="#" id="auth-mode-toggle" style="font-size: 0.82rem; color: var(--primary, #1d4ed8); text-decoration: none;">Need an account? Register</a>
+      </p>
+    </div>
+  </div>
+
+  <div id="app-container" style="display: none;">
     <!-- SIDEBAR NAVIGATION -->
     <sidebar>
       <div class="sidebar-header">
@@ -42,8 +83,11 @@
         <li><a class="menu-item" data-tab="integrity-tab"><i data-lucide="binary"></i>Integrity Checker</a></li>
       </ul>
       <div class="sidebar-footer">
-        <p>DFIR Case Manager v1.0.0</p>
+        <p id="current-user-label" style="font-weight: 700;"></p>
         <p style="margin-top: 4px; font-size: 0.65rem;">Integrity Secure</p>
+        <button id="btn-logout" class="btn btn-secondary btn-sm" style="width: 100%; margin-top: 10px; font-size: 0.75rem; padding: 6px;">
+          <i data-lucide="log-out" style="width: 12px; height: 12px;"></i> Sign Out
+        </button>
       </div>
     </sidebar>
 
@@ -400,6 +444,21 @@
                 <!-- Banner content populated dynamically -->
               </div>
             </form>
+
+            <div style="margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--border-color);">
+              <h3 style="font-size: 0.95rem; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                <i data-lucide="link-2" style="width: 16px; height: 16px;"></i> Custody Chain Integrity
+              </h3>
+              <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 14px;">
+                Independently of file hashing, this re-verifies every custody log entry for the selected evidence item to confirm none of them were altered directly in the database after being recorded.
+              </p>
+              <button type="button" id="btn-verify-chain" class="btn btn-secondary" style="font-size: 0.85rem;">
+                Verify Custody Chain Integrity
+              </button>
+              <div id="chain-verify-banner" style="display: none; margin-top: 14px;">
+                <!-- Banner content populated dynamically -->
+              </div>
+            </div>
           </div>
         </div>
 
@@ -619,6 +678,7 @@
   </div>
 
   <!-- Javascript Core Logic -->
+  <script src="api.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
