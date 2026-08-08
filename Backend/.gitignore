@@ -1,0 +1,6 @@
+node_modules/
+coc_vault.db
+coc_vault.db-shm
+coc_vault.db-wal
+.env
+*.log
