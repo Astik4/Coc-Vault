@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CoC Vault - Digital Forensics Chain of Custody System</title>
+  
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="Professional digital forensics chain of custody evidence manager and integrity verification utility.">
+  <meta name="author" content="Antigravity DFIR Solutions">
+  
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- Typography & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons Library -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- html2pdf.js for exporting court-ready reports -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body>
+
+  <div id="app-container">
+    <!-- SIDEBAR NAVIGATION -->
+    <sidebar>
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <i data-lucide="shield-check"></i>
+          <span>CoC</span>Vault
+        </div>
+      </div>
+      <ul class="sidebar-menu">
+        <li><a class="menu-item active" data-tab="dashboard-tab"><i data-lucide="layout-dashboard"></i>Dashboard</a></li>
+        <li><a class="menu-item" data-tab="cases-tab"><i data-lucide="folder-open"></i>Case Management</a></li>
+        <li><a class="menu-item" data-tab="evidence-tab"><i data-lucide="database"></i>Evidence Vault</a></li>
+        <li><a class="menu-item" data-tab="ledger-tab"><i data-lucide="git-commit"></i>Custody Ledger</a></li>
+        <li><a class="menu-item" data-tab="integrity-tab"><i data-lucide="binary"></i>Integrity Checker</a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <p>DFIR Case Manager v1.0.0</p>
+        <p style="margin-top: 4px; font-size: 0.65rem;">Integrity Secure</p>
+      </div>
+    </sidebar>
+
+    <!-- MAIN INTERFACE -->
+    <main>
+      <!-- HEADER -->
+      <header>
+        <div class="header-title">
+          <h1 id="current-page-title">Dashboard Overview</h1>
+          <p id="current-page-subtitle">Forensic summary & statistics</p>
+        </div>
+        <div class="header-actions">
+          <div class="case-selector-container">
+            <label for="global-case-select" style="margin-bottom: 0; white-space: nowrap;"><i data-lucide="folder" style="width: 16px; height: 16px; display: inline; vertical-align: middle; margin-right: 4px;"></i>Active Case:</label>
+            <select id="global-case-select" class="case-select">
+              <!-- Dynamically populated -->
+              <option value="" disabled selected>Select a Case</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" id="btn-open-case-modal">
+            <i data-lucide="plus-circle"></i>New Case
+          </button>
+        </div>
+      </header>
+
+      <!-- CONTENT WRAPPER -->
+      <div class="content-wrapper">
+
+        <!-- ==========================================
+             TAB: DASHBOARD
+             ========================================== -->
+        <div id="dashboard-tab" class="tab-pane active">
+          <!-- Stats Summary Grid -->
+          <div class="grid-4">
+            <div class="card stat-card">
+              <div class="stat-icon primary"><i data-lucide="folder"></i></div>
+              <div class="stat-details">
+                <h3 id="stat-cases">0</h3>
+                <p>Total Cases</p>
+              </div>
+            </div>
+            <div class="card stat-card">
+              <div class="stat-icon success"><i data-lucide="hard-drive"></i></div>
+              <div class="stat-details">
+                <h3 id="stat-evidence">0</h3>
+                <p>Logged Evidence</p>
+              </div>
+            </div>
+            <div class="card stat-card">
+              <div class="stat-icon warning"><i data-lucide="repeat"></i></div>
+              <div class="stat-details">
+                <h3 id="stat-transfers">0</h3>
+                <p>Custody Transfers</p>
+              </div>
+            </div>
+            <div class="card stat-card">
+              <div class="stat-icon danger"><i data-lucide="check-circle-2"></i></div>
+              <div class="stat-details">
+                <h3 id="stat-integrity">100%</h3>
+                <p>Integrity Verified</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dynamic Active Case Overview -->
+          <div class="grid-2">
+            <div class="card">
+              <h2 class="card-title"><i data-lucide="info"></i>Active Case Details</h2>
+              <div id="dashboard-active-case-content">
+                <!-- Case Information will render here -->
+                <div style="text-align: center; padding: 40px 0; color: var(--text-muted);">
+                  <i data-lucide="folder-symlink" style="width: 48px; height: 48px; stroke-width: 1; margin-bottom: 12px; color: var(--text-light);"></i>
+                  <p>No active case selected. Select or create a case from the top bar.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Recent Transfers / Logs -->
+            <div class="card">
+              <h2 class="card-title"><i data-lucide="clock"></i>Recent Custody Transfers</h2>
+              <div id="dashboard-recent-transfers" style="max-height: 380px; overflow-y: auto;">
+                <!-- Recent transfers lists -->
+                <div style="text-align: center; padding: 40px 0; color: var(--text-muted);">
+                  <i data-lucide="history" style="width: 48px; height: 48px; stroke-width: 1; margin-bottom: 12px; color: var(--text-light);"></i>
+                  <p>No recent custody transfers logged.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==========================================
+             TAB: CASE MANAGEMENT
+             ========================================== -->
+        <div id="cases-tab" class="tab-pane">
+          <div class="card">
+            <h2 class="card-title"><i data-lucide="list"></i>Forensic Case Directory</h2>
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Case Number</th>
+                    <th>Date Opened</th>
+                    <th>Lead Investigator</th>
+                    <th>Agency / Org</th>
+                    <th>Suspect/Target</th>
+                    <th>Evidence Items</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="case-table-body">
+                  <!-- Case rows -->
+                  <tr>
+                    <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 40px 0;">
+                      <i data-lucide="folder" style="width: 32px; height: 32px; stroke-width: 1.5; margin-bottom: 8px; color: var(--text-light); display: block; margin-left: auto; margin-right: auto;"></i>
+                      No forensic cases logged in system.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==========================================
+             TAB: EVIDENCE VAULT
+             ========================================== -->
+        <div id="evidence-tab" class="tab-pane">
+          <!-- Main Content Grid -->
+          <div style="display: flex; flex-direction: column; gap: 24px;">
+            <!-- Active Case Alert -->
+            <div id="evidence-no-case-alert" class="card" style="text-align: center; padding: 60px 20px; color: var(--text-muted);">
+              <i data-lucide="alert-triangle" style="width: 60px; height: 60px; color: var(--warning); margin-bottom: 16px;"></i>
+              <h3>Active Case Required</h3>
+              <p style="margin-top: 8px; font-size: 0.95rem;">You must select or create an active case before you can register forensic evidence.</p>
+              <button class="btn btn-primary" id="btn-evidence-select-case" style="margin-top: 16px;">Select or Create Case</button>
+            </div>
+
+            <div id="evidence-active-container" style="display: none;" class="grid-3">
+              <!-- Left Form Column -->
+              <div class="card" style="grid-column: span 1; height: fit-content;">
+                <h2 class="card-title"><i data-lucide="plus-circle"></i>Log New Evidence</h2>
+                <form id="evidence-form">
+                  <div class="form-group">
+                    <label for="evidence-id">Evidence Item ID*</label>
+                    <input type="text" id="evidence-id" placeholder="e.g., ITEM-001" required>
+                  </div>
+                  <div class="form-group">
+                    <label for="evidence-type">Evidence Type*</label>
+                    <select id="evidence-type" required>
+                      <option value="">Select media type...</option>
+                      <option value="Hard Drive (HDD)">Hard Drive (HDD)</option>
+                      <option value="Solid State Drive (SSD)">Solid State Drive (SSD)</option>
+                      <option value="USB Flash Drive">USB Flash Drive</option>
+                      <option value="Mobile Phone">Mobile Phone</option>
+                      <option value="SD Memory Card">SD Memory Card</option>
+                      <option value="Disk Image (E01/DD)">Disk Image (E01/DD)</option>
+                      <option value="Network Capture (PCAP)">Network Capture (PCAP)</option>
+                      <option value="Logical Files/Folder">Logical Files/Folder</option>
+                      <option value="Other Physical Media">Other Physical Media</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="evidence-serial">Make / Model & Serial Number</label>
+                    <input type="text" id="evidence-serial" placeholder="e.g., Western Digital WD10EZEX, S/N: WCC6Y0...">
+                  </div>
+                  <div class="form-group">
+                    <label for="evidence-location">Location / Source Found*</label>
+                    <input type="text" id="evidence-location" placeholder="e.g., Office A desk drawer" required>
+                  </div>
+                  <div class="form-group">
+                    <label for="evidence-collected-by">Collected By (Investigator)*</label>
+                    <input type="text" id="evidence-collected-by" placeholder="Investigator Name" required>
+                  </div>
+                  <div class="form-group">
+                    <label for="evidence-description">Item Description & Notes</label>
+                    <textarea id="evidence-description" placeholder="Include details such as condition, state (on/off), write-blocker used during acquisition, etc."></textarea>
+                  </div>
+                  
+                  <!-- File Hashing Dropzone -->
+                  <div class="form-group">
+                    <label>Evidence File Verification Hash (SHA-256)*</label>
+                    <div id="file-dropzone" class="dropzone">
+                      <i data-lucide="upload-cloud"></i>
+                      <div class="dropzone-text">
+                        <h4>Calculate Hash from File</h4>
+                        <p>Drag file here or click to browse</p>
+                      </div>
+                      <input type="file" id="evidence-file-input" style="display: none;">
+                    </div>
+                    <!-- Calculated Hash Display -->
+                    <div id="hash-calc-status" style="display: none; margin-top: 10px; font-size: 0.8rem; color: var(--text-muted);">
+                      <i data-lucide="loader" class="animate-spin" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-right: 4px;"></i> Calculating cryptographic hash...
+                    </div>
+                    <div class="hash-result-box" style="margin-top: 10px;">
+                      <input type="text" id="evidence-hash" style="border: none; background: transparent; padding: 0; font-family: monospace; color: var(--primary); font-size: 0.8rem; font-weight: 600; width: 100%;" placeholder="Awaiting file hash calculation..." required readonly>
+                    </div>
+                  </div>
+
+                  <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 12px;">
+                    <i data-lucide="save"></i>Secure & Log Item
+                  </button>
+                </form>
+              </div>
+
+              <!-- Right Grid Table Column -->
+              <div class="card" style="grid-column: span 2;">
+                <h2 class="card-title"><i data-lucide="shield"></i>Registered Evidence Vault</h2>
+                <div class="table-container">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Item ID</th>
+                        <th>Type / Model</th>
+                        <th>Location Found</th>
+                        <th>SHA-256 Hash</th>
+                        <th>Date Logged</th>
+                        <th>Current Custody</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="evidence-table-body">
+                      <!-- Evidence items will go here -->
+                      <tr>
+                        <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 40px 0;">
+                          No evidence logged for this case yet.
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==========================================
+             TAB: CUSTODY LEDGER
+             ========================================== -->
+        <div id="ledger-tab" class="tab-pane">
+          <div id="ledger-no-case-alert" class="card" style="text-align: center; padding: 60px 20px; color: var(--text-muted);">
+            <i data-lucide="alert-triangle" style="width: 60px; height: 60px; color: var(--warning); margin-bottom: 16px;"></i>
+            <h3>Active Case Required</h3>
+            <p style="margin-top: 8px; font-size: 0.95rem;">Please select or create an active case to manage evidence custody chains.</p>
+          </div>
+
+          <div id="ledger-active-container" style="display: none;" class="grid-3">
+            <!-- Left Picker and Form -->
+            <div style="grid-column: span 1; display: flex; flex-direction: column; gap: 24px;">
+              
+              <!-- Evidence Item Selector -->
+              <div class="card">
+                <h2 class="card-title"><i data-lucide="search"></i>Select Evidence Item</h2>
+                <div class="form-group">
+                  <label for="ledger-evidence-select">Evidence Item</label>
+                  <select id="ledger-evidence-select">
+                    <option value="" disabled selected>Choose evidence...</option>
+                  </select>
+                </div>
+                <div id="ledger-evidence-preview" style="display: none; padding: 12px; background-color: #f8fafc; border: 1px dashed var(--border-color); border-radius: var(--border-radius-sm); font-size: 0.85rem;">
+                  <p><strong>Type:</strong> <span id="prev-type">-</span></p>
+                  <p style="margin-top: 4px;"><strong>S/N:</strong> <span id="prev-serial">-</span></p>
+                  <p style="margin-top: 4px;"><strong>Location Found:</strong> <span id="prev-location">-</span></p>
+                  <p style="margin-top: 4px; word-break: break-all;"><strong>SHA-256:</strong> <span id="prev-hash" style="font-family: monospace; font-size: 0.75rem; color: var(--primary);">-</span></p>
+                </div>
+              </div>
+
+              <!-- Export / Court admissibility options -->
+              <div class="card" id="export-card" style="display: none;">
+                <h2 class="card-title"><i data-lucide="file-text"></i>Forensic Audit Reports</h2>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">
+                  Export the full verified chain of custody report for legal proceedings.
+                </p>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                  <button class="btn btn-secondary" id="btn-print-report"><i data-lucide="printer"></i>Print Report</button>
+                  <button class="btn btn-success" id="btn-export-pdf"><i data-lucide="download"></i>Download PDF Report</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Middle/Right timeline ledger -->
+            <div class="card" style="grid-column: span 2;">
+              <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 20px;">
+                <h2 style="font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; margin: 0;"><i data-lucide="git-commit"></i>Chronological Audit Ledger</h2>
+                <button class="btn btn-primary btn-sm" id="btn-open-transfer-modal" disabled><i data-lucide="repeat"></i>Record Transfer</button>
+              </div>
+
+              <div id="ledger-timeline-container">
+                <!-- Timeline populated dynamically -->
+                <div style="text-align: center; padding: 60px 0; color: var(--text-muted);">
+                  <i data-lucide="scan-eye" style="width: 56px; height: 56px; stroke-width: 1; margin-bottom: 16px; color: var(--text-light);"></i>
+                  <h4>Select an Evidence Item</h4>
+                  <p style="font-size: 0.9rem; margin-top: 4px;">Choose an item on the left panel to review its custodial history ledger.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==========================================
+             TAB: INTEGRITY CHECKER
+             ========================================== -->
+        <div id="integrity-tab" class="tab-pane">
+          <div class="card" style="max-width: 800px; margin: 0 auto;">
+            <h2 class="card-title"><i data-lucide="binary"></i>Evidence Integrity Verification Suite</h2>
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 24px;">
+              Digital forensics demands strict adherence to hash validation. Use this module to upload a file and cross-reference its computed hash against the registered database entry to check if tampering has occurred.
+            </p>
+
+            <form id="integrity-form">
+              <div class="form-row">
+                <div class="form-group" style="flex: 1;">
+                  <label for="integrity-case-select">Select Case</label>
+                  <select id="integrity-case-select">
+                    <option value="" disabled selected>Choose Case...</option>
+                  </select>
+                </div>
+                <div class="form-group" style="flex: 1;">
+                  <label for="integrity-evidence-select">Select Registered Evidence Item</label>
+                  <select id="integrity-evidence-select" disabled>
+                    <option value="" disabled selected>Awaiting case selection...</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Database hash preview -->
+              <div id="integrity-db-hash-preview" style="display: none; padding: 12px; background-color: var(--primary-light); border: 1px solid var(--border-color); border-radius: var(--border-radius-sm); font-size: 0.85rem; margin-bottom: 20px;">
+                <p><strong>Registered SHA-256 Hash in Ledger:</strong></p>
+                <p id="integrity-db-hash" style="font-family: monospace; font-weight: 700; color: var(--primary); margin-top: 4px; word-break: break-all;">-</p>
+              </div>
+
+              <!-- File upload for comparison -->
+              <div class="form-group">
+                <label>Upload File for Verification</label>
+                <div id="verify-dropzone" class="dropzone">
+                  <i data-lucide="binary"></i>
+                  <div class="dropzone-text">
+                    <h4>Select File to Recheck</h4>
+                    <p>Drag file here or click to browse</p>
+                  </div>
+                  <input type="file" id="integrity-file-input" style="display: none;">
+                </div>
+                <!-- Verification Hashing Status -->
+                <div id="verify-calc-status" style="display: none; margin-top: 10px; font-size: 0.8rem; color: var(--text-muted);">
+                  <i data-lucide="loader" class="animate-spin" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-right: 4px;"></i> Calculating file hash for validation...
+                </div>
+                <!-- Uploaded Hash Result Box -->
+                <div class="hash-result-box" style="margin-top: 10px;">
+                  <input type="text" id="integrity-calc-hash" style="border: none; background: transparent; padding: 0; font-family: monospace; color: var(--text-main); font-size: 0.8rem; font-weight: 600; width: 100%;" placeholder="Awaiting file hash calculation..." readonly>
+                </div>
+              </div>
+
+              <div id="integrity-result-banner" style="display: none;">
+                <!-- Banner content populated dynamically -->
+              </div>
+            </form>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ==========================================
+       MODAL: CREATE NEW CASE
+       ========================================== -->
+  <div class="modal-overlay" id="new-case-modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Create Forensic Case</h3>
+        <button class="modal-close" id="new-case-modal-close"><i data-lucide="x"></i></button>
+      </div>
+      <form id="new-case-form">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="case-id">Case Number*</label>
+            <input type="text" id="case-id" placeholder="e.g., CASE-2026-001" required>
+          </div>
+          <div class="form-group">
+            <label for="case-investigator">Lead Investigator Name*</label>
+            <input type="text" id="case-investigator" placeholder="Investigator Name" required>
+          </div>
+          <div class="form-group">
+            <label for="case-badge">Investigator Badge / ID Number*</label>
+            <input type="text" id="case-badge" placeholder="e.g., Badge #4812" required>
+          </div>
+          <div class="form-group">
+            <label for="case-agency">Investigator Agency / Organization*</label>
+            <input type="text" id="case-agency" placeholder="e.g., Metropolitan Cyber Crimes Unit" required>
+          </div>
+          <div class="form-group">
+            <label for="case-target">Suspect / Target Subject Name</label>
+            <input type="text" id="case-target" placeholder="e.g., John Doe (Leave blank if unknown)">
+          </div>
+          <div class="form-group">
+            <label for="case-date">Date Incident Initiated*</label>
+            <input type="date" id="case-date" required>
+          </div>
+          <div class="form-group">
+            <label for="case-notes">Case Incident Description & Scope</label>
+            <textarea id="case-notes" placeholder="Summarize incident details, context, and legal authorization (e.g., search warrant reference)..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btn-cancel-case">Cancel</button>
+          <button type="submit" class="btn btn-primary">Initialize Case File</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL: TRANSFER CUSTODY
+       ========================================== -->
+  <div class="modal-overlay" id="transfer-modal-overlay">
+    <div class="modal" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3>Record Evidence Custody Transfer</h3>
+        <button class="modal-close" id="transfer-modal-close"><i data-lucide="x"></i></button>
+      </div>
+      <form id="transfer-form">
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group" style="flex: 1;">
+              <label for="trans-released-by">Released By (Current Custodian)*</label>
+              <input type="text" id="trans-released-by" required readonly>
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label for="trans-received-by">Received By (New Custodian)*</label>
+              <input type="text" id="trans-received-by" placeholder="Name of recipient" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group" style="flex: 1;">
+              <label for="trans-purpose">Purpose of Transfer*</label>
+              <select id="trans-purpose" required>
+                <option value="">Select purpose...</option>
+                <option value="Transfer to Secure Forensic Vault">Transfer to Secure Forensic Vault</option>
+                <option value="Forensic Analysis / Imaging">Forensic Analysis / Imaging</option>
+                <option value="Temporary Release for Investigation">Temporary Release for Investigation</option>
+                <option value="Court Presentation">Court Presentation</option>
+                <option value="Return to Owner">Return to Owner</option>
+                <option value="Destruction / Disposition">Destruction / Disposition</option>
+                <option value="Other Analysis (Specify in Notes)">Other (Specify in Notes)</option>
+              </select>
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label for="trans-location">Transfer Location / Facility*</label>
+              <input type="text" id="trans-location" placeholder="e.g., Forensic Lab Room 204" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="trans-notes">Transfer Comments / Evidence Package Status</label>
+            <textarea id="trans-notes" placeholder="Notes on integrity seals, packaging, or custom transfer details..."></textarea>
+          </div>
+
+          <!-- SIGNATURE PADS -->
+          <div class="signature-section">
+            <div class="signature-container">
+              <label>Releasing Officer Signature*</label>
+              <canvas class="signature-canvas" id="canvas-released-sig"></canvas>
+              <div class="signature-controls">
+                <span style="font-size: 0.7rem; color: var(--text-muted);">Sign inside frame</span>
+                <button type="button" class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.75rem;" id="btn-clear-release-sig">Clear</button>
+              </div>
+            </div>
+            <div class="signature-container">
+              <label>Receiving Officer Signature*</label>
+              <canvas class="signature-canvas" id="canvas-received-sig"></canvas>
+              <div class="signature-controls">
+                <span style="font-size: 0.7rem; color: var(--text-muted);">Sign inside frame</span>
+                <button type="button" class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.75rem;" id="btn-clear-receive-sig">Clear</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btn-cancel-transfer">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-save-transfer">Authorize & Log Transfer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       PRINTABLE REPORT TEMPLATE (Hidden from UI view)
+       ========================================== -->
+  <div id="printable-report-area">
+    <div class="print-header">
+      <h1>Chain of Custody Forensic Audit Report</h1>
+      <p>Report Generated automatically via CoC Vault on <span id="print-report-gen-time">Date</span></p>
+    </div>
+
+    <div class="print-section">
+      <div class="print-section-title">Case Metadata</div>
+      <table class="print-meta-table">
+        <tr>
+          <td style="width: 22%;"><strong>Case Number:</strong></td>
+          <td style="width: 28%; font-family: monospace; font-weight: 700; color: var(--primary);"><span id="print-case-id">-</span></td>
+          <td style="width: 25%;"><strong>Incident Initiated Date:</strong></td>
+          <td style="width: 25%;"><span id="print-case-date">-</span></td>
+        </tr>
+        <tr>
+          <td><strong>Lead Investigator:</strong></td>
+          <td><span id="print-case-investigator">-</span></td>
+          <td><strong>Investigator ID / Badge:</strong></td>
+          <td><span id="print-case-badge">-</span></td>
+        </tr>
+        <tr>
+          <td><strong>Agency / Organization:</strong></td>
+          <td><span id="print-case-agency">-</span></td>
+          <td><strong>Suspect / Target Subject:</strong></td>
+          <td><span id="print-case-target">-</span></td>
+        </tr>
+      </table>
+      <div style="margin-top: 12px; font-size: 9.5pt; font-weight: 600; color: var(--text-main);">Case Incident Description & Scope:</div>
+      <p id="print-case-notes" style="font-size: 9pt; margin-top: 4px; font-style: italic; color: var(--text-muted); padding: 10px; background-color: #f8fafc; border: 1px solid #cbd5e1; border-radius: 4px; line-height: 1.4;">-</p>
+    </div>
+
+    <div class="print-section">
+      <div class="print-section-title">Evidence Description & Acquisition</div>
+      <table class="print-table">
+        <thead>
+          <tr>
+            <th style="width: 20%;">Item ID</th>
+            <th style="width: 25%;">Type / Model</th>
+            <th style="width: 25%;">Acquisition Location</th>
+            <th style="width: 18%;">Acquisition Date</th>
+            <th style="width: 12%;">Acquired By</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="font-family: monospace; font-weight: 700; color: var(--primary); white-space: nowrap;"><span id="print-item-id">-</span></td>
+            <td><strong><span id="print-item-type">-</span></strong><br><small style="font-family: monospace; color: var(--text-muted);" id="print-item-serial">-</small></td>
+            <td><span id="print-item-location">-</span></td>
+            <td style="font-size: 8.5pt;"><span id="print-item-date">-</span></td>
+            <td><span id="print-item-collected-by">-</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="margin-top: 12px; font-size: 9.5pt; font-weight: 600; color: var(--text-main);">Acquisition Cryptographic Hash (SHA-256 Verification Target):</div>
+      <p id="print-item-hash" style="font-family: monospace; font-size: 8.5pt; font-weight: bold; word-break: break-all; margin-top: 4px; border: 1px solid #94a3b8; padding: 6px 10px; background-color: #f8fafc; color: var(--primary); border-radius: 4px; display: inline-block;">-</p>
+      <div style="margin-top: 12px; font-size: 9.5pt; font-weight: 600; color: var(--text-main);">Forensic Acquisition Notes:</div>
+      <p id="print-item-description" style="font-size: 9pt; font-style: italic; color: var(--text-muted); margin-top: 4px; padding: 8px; border-left: 3px solid #cbd5e1; background-color: #f8fafc;">-</p>
+    </div>
+
+    <div class="print-section">
+      <div class="print-section-title">Chronological Chain of Custody Audit Ledger</div>
+      <table class="print-table">
+        <thead>
+          <tr>
+            <th style="width: 5%;">Seq</th>
+            <th style="width: 15%;">Date & Time</th>
+            <th style="width: 18%;">Released By</th>
+            <th style="width: 18%;">Received By</th>
+            <th style="width: 15%;">Transfer Location</th>
+            <th style="width: 15%;">Purpose</th>
+            <th style="width: 14%;">Signatures</th>
+          </tr>
+        </thead>
+        <tbody id="print-ledger-rows">
+          <!-- Populated in app.js -->
+        </tbody>
+      </table>
+    </div>
+    
+    <div style="margin-top: 40px; font-size: 8pt; text-align: center; border-top: 1px solid #cbd5e1; padding-top: 10px; color: var(--text-muted);">
+      End of Forensic Report. This record is electronically managed by the CoC Vault. Integrity verified at all points of transfer.
+    </div>
+  </div>
+
+  <!-- Javascript Core Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
