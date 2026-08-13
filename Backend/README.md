@@ -42,6 +42,15 @@ same pattern you've used in BOLAHawk/SecurScout.
 
 ---
 
+## Demo / test data
+
+`test_evidence/` contains three realistic synthetic evidence files (a
+spoofed executive email, suspicious auth logs, a flagged transaction
+export) for a simulated Business Email Compromise case. Run
+`python seed_demo_data.py` (with the server already running) to load a
+full demo case — case, evidence, hashes, and one custody transfer — through
+the real API. See `USER_GUIDE.md` in the project root for the full walkthrough.
+
 ## Setup
 
 ```bash
