@@ -113,6 +113,20 @@ class SignaturePad {
    AUTH GATE — shows login/register until a valid session exists
    ========================================================================== */
 document.addEventListener('DOMContentLoaded', () => {
+  // Lucide icons are loaded from a CDN (see index.html). If that CDN is
+  // ever slow, blocked (ad-blocker, restrictive network), or offline, the
+  // rest of the app must not break — icons are cosmetic, not functional —
+  // so every icon refresh in this file goes through this guarded helper
+  // instead of calling lucide.createIcons() directly.
+  function refreshIcons() {
+    if (window.lucide) lucide.createIcons();
+  }
+
+  // Render icons immediately so the auth screen's icons show up even
+  // before a successful login — previously this only ran after initApp(),
+  // so the login screen's icon never actually appeared.
+  refreshIcons();
+
   const authOverlay = document.getElementById('auth-overlay');
   const appContainer = document.getElementById('app-container');
   const authForm = document.getElementById('auth-form');
@@ -200,7 +214,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let casesCache = [];
     let evidenceCache = [];
 
-    lucide.createIcons();
+    refreshIcons();
 
     // Logout button (added to the sidebar in index.html)
     const logoutBtn = document.getElementById('btn-logout');
@@ -530,7 +544,7 @@ document.addEventListener('DOMContentLoaded', () => {
           await renderIntegrityTab();
           break;
       }
-      lucide.createIcons();
+      refreshIcons();
     }
 
     /* --- Render Dashboard --- */
@@ -606,11 +620,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /* --- Render Cases Directory ---
-       NOTE: Case deletion has been intentionally removed. A real chain-of-
-       custody system should not allow silently deleting case/evidence
-       records — that defeats the point of an auditable log. If a case is
-       opened in error, the honest move is to keep the record and note it
-       was closed/voided, not erase it. */
+       Deletion is allowed for correcting data-entry mistakes (e.g. a case
+       opened by accident, or clearing demo data) — it cascades to that
+       case's evidence and custody logs on the backend. In a real
+       production CoC deployment you'd typically close/void a case rather
+       than erase it, to preserve the audit trail; this project keeps hard
+       delete because it's the more useful behaviour for a student/demo
+       build, and the confirm dialog below makes sure it's intentional. */
     function renderCases() {
       const tableBody = document.getElementById('case-table-body');
 
@@ -623,6 +639,7 @@ document.addEventListener('DOMContentLoaded', () => {
             </td>
           </tr>
         `;
+        refreshIcons();
         return;
       }
 
@@ -641,16 +658,45 @@ document.addEventListener('DOMContentLoaded', () => {
             <td>${c.agency}</td>
             <td>${c.suspect}</td>
             <td style="text-align: center; font-weight: 700;">${itemsCount}</td>
-            <td>${statusBtn}</td>
+            <td>
+              <div style="display: flex; gap: 6px; align-items: center;">
+                ${statusBtn}
+                <button class="btn-icon-danger btn-delete-case" data-id="${c.backendId}" data-label="${c.id}" data-count="${itemsCount}" title="Delete case">
+                  <i data-lucide="trash-2"></i>
+                </button>
+              </div>
+            </td>
           </tr>
         `;
       }).join('');
+
+      refreshIcons();
 
       document.querySelectorAll('.btn-activate-case').forEach(btn => {
         btn.addEventListener('click', async () => {
           activeCaseBackendId = btn.getAttribute('data-id');
           await renderActiveCaseDropdowns();
           await renderTabContent('cases-tab');
+        });
+      });
+
+      document.querySelectorAll('.btn-delete-case').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-id');
+          const label = btn.getAttribute('data-label');
+          const count = btn.getAttribute('data-count');
+          const extra = Number(count) > 0 ? ` This will also permanently delete its ${count} evidence item(s) and their full custody logs.` : '';
+          if (!confirm(`Delete case "${label}"?${extra}\n\nThis cannot be undone.`)) return;
+
+          try {
+            await Api.deleteCase(id);
+            if (activeCaseBackendId === id) activeCaseBackendId = '';
+            await refreshCaches();
+            await renderActiveCaseDropdowns();
+            await renderTabContent(activeTab);
+          } catch (err) {
+            alert(`Error: ${err.message}`);
+          }
         });
       });
     }
@@ -702,7 +748,14 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       noCaseAlert.style.display = 'none';
-      activeContainer.style.display = 'grid';
+      // display: flex here (not 'grid') — #evidence-active-container is
+      // styled as a flex column in style.css so the evidence table always
+      // gets the tab's full width instead of squeezing into a grid column
+      // next to the form. Setting an inline style value that doesn't match
+      // the stylesheet's display mode would silently win over it (inline
+      // styles always beat CSS selectors), so this has to stay in sync
+      // with the '#evidence-active-container' rule in style.css.
+      activeContainer.style.display = 'flex';
 
       const tableBody = document.getElementById('evidence-table-body');
       const caseItems = evidenceCache.filter(e => e.caseId === activeCaseBackendId);
@@ -710,34 +763,64 @@ document.addEventListener('DOMContentLoaded', () => {
       if (caseItems.length === 0) {
         tableBody.innerHTML = `
           <tr>
-            <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 40px 0;">
+            <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 40px 0;">
               <i data-lucide="shield-alert" style="width: 32px; height: 32px; stroke-width: 1.5; margin-bottom: 8px; color: var(--text-light); display: block; margin-left: auto; margin-right: auto;"></i>
               No forensic evidence logged for this case. Register an item using the left form.
             </td>
           </tr>
         `;
+        refreshIcons();
         return;
       }
 
       tableBody.innerHTML = caseItems.map(item => {
         const lastCustodian = item.custodyHistory[item.custodyHistory.length - 1].receivedBy;
-        const formattedDate = new Date(item.dateLogged).toLocaleString();
+        const loggedDate = new Date(item.dateLogged);
+        // Short date only in the table (full timestamp still available via
+        // the title tooltip) — this is one of several columns competing
+        // for space in a fairly narrow table, so being economical here
+        // keeps the Actions/delete column from needing a horizontal
+        // scroll to reach on a typical laptop screen.
+        const formattedDate = loggedDate.toLocaleDateString();
 
         return `
           <tr>
             <td style="font-family: monospace; font-weight: 700; color: var(--primary);">${item.itemId}</td>
             <td><strong>${item.type}</strong><br><small style="color: var(--text-muted); font-family: monospace;">S/N: ${item.serial}</small></td>
-            <td>${item.location}</td>
+            <td><span title="${item.location}" style="display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; max-width: 150px;">${item.location}</span></td>
             <td>
-              <div style="font-family: monospace; font-size: 0.75rem; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${item.hash}">
+              <div style="font-family: monospace; font-size: 0.75rem; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${item.hash}">
                 ${item.hash}
               </div>
             </td>
-            <td style="font-size: 0.8rem;">${formattedDate}</td>
-            <td><span class="badge badge-info"><i data-lucide="user" style="width: 10px; height: 10px; margin-right: 2px;"></i> ${lastCustodian}</span></td>
+            <td style="font-size: 0.8rem; white-space: nowrap;" title="${loggedDate.toLocaleString()}">${formattedDate}</td>
+            <td><span class="badge badge-info" style="max-width: 130px;" title="${lastCustodian}"><i data-lucide="user" style="width: 10px; height: 10px; margin-right: 2px; flex-shrink: 0;"></i><span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;">${lastCustodian}</span></span></td>
+            <td>
+              <button class="btn-icon-danger btn-delete-evidence" data-id="${item.backendId}" data-label="${item.itemId}" title="Delete evidence item">
+                <i data-lucide="trash-2"></i>
+              </button>
+            </td>
           </tr>
         `;
       }).join('');
+
+      refreshIcons();
+
+      document.querySelectorAll('.btn-delete-evidence').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-id');
+          const label = btn.getAttribute('data-label');
+          if (!confirm(`Delete evidence item "${label}"?\n\nThis permanently removes it and its full custody log. This cannot be undone.`)) return;
+
+          try {
+            await Api.deleteEvidence(id);
+            await refreshCaches();
+            await renderTabContent(activeTab);
+          } catch (err) {
+            alert(`Error: ${err.message}`);
+          }
+        });
+      });
     }
 
     /* --- Render Custody Ledger Tab --- */
@@ -952,7 +1035,7 @@ document.addEventListener('DOMContentLoaded', () => {
               </div>
             `;
           }
-          lucide.createIcons();
+          refreshIcons();
         } catch (err) {
           alert(`Chain verification failed: ${err.message}`);
         } finally {
@@ -1006,7 +1089,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         `;
       }
-      lucide.createIcons();
+      refreshIcons();
     }
 
     /* ==========================================================================

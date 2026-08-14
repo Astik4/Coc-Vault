@@ -38,7 +38,19 @@ async function apiFetch(path, options = {}) {
   const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
   if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
 
-  const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  let res;
+  try {
+    res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  } catch (err) {
+    // A rejected fetch here almost always means one of two things:
+    // the Flask backend isn't running, or it's running but blocking this
+    // page's origin via CORS. Give a message that actually points at the
+    // fix instead of the browser's generic "Failed to fetch".
+    throw new Error(
+      `Can't reach the backend at ${API_BASE}. Make sure "python app.py" is running, ` +
+      `and that this page's origin is listed in the backend's CORS_ORIGIN (in Backend/.env).`
+    );
+  }
 
   if (res.status === 401) {
     // Token missing/expired — force back to login rather than showing a
@@ -167,6 +179,10 @@ const Api = {
     return mapCaseFromApi(row);
   },
 
+  async deleteCase(caseBackendId) {
+    return apiFetch(`/cases/${caseBackendId}`, { method: 'DELETE' });
+  },
+
   async getEvidence(caseBackendId) {
     const query = caseBackendId ? `?caseId=${encodeURIComponent(caseBackendId)}` : '';
     const rows = await apiFetch(`/evidence${query}`);
@@ -187,6 +203,10 @@ const Api = {
       })
     });
     return mapEvidenceFromApi(row);
+  },
+
+  async deleteEvidence(evidenceBackendId) {
+    return apiFetch(`/evidence/${evidenceBackendId}`, { method: 'DELETE' });
   },
 
   async transferEvidence(evidenceBackendId, transferData) {

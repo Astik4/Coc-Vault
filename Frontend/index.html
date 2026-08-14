@@ -29,39 +29,48 @@
        AUTH OVERLAY (login / register)
        Shown until a valid session token exists.
        ========================================== -->
-  <div id="auth-overlay" style="display: flex; align-items: center; justify-content: center; min-height: 100vh; background: var(--bg-main, #f4f6f9); font-family: 'Inter', sans-serif;">
-    <div style="width: 100%; max-width: 380px; padding: 40px 32px; background: #ffffff; border: 1px solid var(--border-color, #e2e8f0); border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.06);">
-      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 24px; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 1.3rem; color: var(--primary, #1d4ed8);">
-        <i data-lucide="shield-check"></i>
-        <span>CoC Vault</span>
+  <div id="auth-overlay" style="display: flex; align-items: center; justify-content: center; min-height: 100vh; background: radial-gradient(circle at 15% 15%, rgba(67,56,202,0.10), transparent 45%), radial-gradient(circle at 85% 85%, rgba(14,165,183,0.10), transparent 45%), #f3f5f9; font-family: 'Inter', sans-serif; padding: 20px;">
+    <div style="width: 100%; max-width: 400px;">
+      <div style="text-align: center; margin-bottom: 22px;">
+        <div style="width: 56px; height: 56px; margin: 0 auto 14px; border-radius: 14px; background: linear-gradient(135deg, #4338ca, #0ea5b7); display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 24px -8px rgba(67,56,202,0.5);">
+          <i data-lucide="shield-check" style="color: #fff; width: 28px; height: 28px;"></i>
+        </div>
+        <div style="font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 1.4rem; color: #1a2233;">CoC Vault</div>
+        <p style="font-size: 0.8rem; color: #64748b; margin-top: 2px; letter-spacing: 0.3px;">Digital Forensics Chain of Custody System</p>
       </div>
 
-      <h2 id="auth-title" style="margin: 0 0 4px 0; font-size: 1.1rem;">Sign In to CoC Vault</h2>
-      <p style="margin: 0 0 20px 0; font-size: 0.85rem; color: var(--text-muted, #64748b);">Digital Forensics Chain of Custody System</p>
+      <div style="padding: 36px 32px; background: #ffffff; border: 1px solid #e6e9f0; border-radius: 16px; box-shadow: 0 20px 40px -12px rgba(16,24,40,0.14);">
+        <h2 id="auth-title" style="margin: 0 0 4px 0; font-size: 1.15rem; font-weight: 700; color: #1a2233;">Sign In to CoC Vault</h2>
+        <p style="margin: 0 0 22px 0; font-size: 0.85rem; color: #64748b;">Authorized personnel only. Evidence access is logged.</p>
 
-      <div id="auth-error" style="display: none; background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; padding: 10px 12px; border-radius: 6px; font-size: 0.82rem; margin-bottom: 16px;"></div>
+        <div id="auth-error" style="display: none; background: #fef1f4; border: 1px solid #f6c6d3; color: #9f1239; padding: 10px 12px; border-radius: 8px; font-size: 0.82rem; margin-bottom: 16px;"></div>
 
-      <form id="auth-form">
-        <div id="auth-displayname-group" style="display: none; margin-bottom: 14px;">
-          <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 4px;">Display Name</label>
-          <input type="text" id="auth-displayname" placeholder="e.g. Agent Sarah Jenkins" style="width: 100%; padding: 9px 10px; border: 1px solid var(--border-color, #e2e8f0); border-radius: 6px; font-size: 0.9rem; box-sizing: border-box;">
-        </div>
+        <form id="auth-form">
+          <div id="auth-displayname-group" style="display: none; margin-bottom: 14px;">
+            <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 5px; color: #1a2233;">Display Name</label>
+            <input type="text" id="auth-displayname" placeholder="e.g. Agent Sarah Jenkins" style="width: 100%; padding: 10px 12px; border: 1px solid #e6e9f0; border-radius: 8px; font-size: 0.9rem; box-sizing: border-box; transition: border-color .15s;">
+          </div>
 
-        <div style="margin-bottom: 14px;">
-          <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 4px;">Username</label>
-          <input type="text" id="auth-username" required style="width: 100%; padding: 9px 10px; border: 1px solid var(--border-color, #e2e8f0); border-radius: 6px; font-size: 0.9rem; box-sizing: border-box;">
-        </div>
+          <div style="margin-bottom: 14px;">
+            <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 5px; color: #1a2233;">Username</label>
+            <input type="text" id="auth-username" required style="width: 100%; padding: 10px 12px; border: 1px solid #e6e9f0; border-radius: 8px; font-size: 0.9rem; box-sizing: border-box;">
+          </div>
 
-        <div style="margin-bottom: 20px;">
-          <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 4px;">Password</label>
-          <input type="password" id="auth-password" required minlength="8" style="width: 100%; padding: 9px 10px; border: 1px solid var(--border-color, #e2e8f0); border-radius: 6px; font-size: 0.9rem; box-sizing: border-box;">
-        </div>
+          <div style="margin-bottom: 22px;">
+            <label style="display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 5px; color: #1a2233;">Password</label>
+            <input type="password" id="auth-password" required minlength="8" style="width: 100%; padding: 10px 12px; border: 1px solid #e6e9f0; border-radius: 8px; font-size: 0.9rem; box-sizing: border-box;">
+          </div>
 
-        <button type="submit" id="auth-submit-btn" class="btn btn-primary" style="width: 100%; padding: 10px; font-size: 0.9rem;">Sign In</button>
-      </form>
+          <button type="submit" id="auth-submit-btn" class="btn btn-primary" style="width: 100%; padding: 11px; font-size: 0.92rem;">Sign In</button>
+        </form>
 
-      <p style="text-align: center; margin-top: 18px;">
-        <a href="#" id="auth-mode-toggle" style="font-size: 0.82rem; color: var(--primary, #1d4ed8); text-decoration: none;">Need an account? Register</a>
+        <p style="text-align: center; margin-top: 20px;">
+          <a href="#" id="auth-mode-toggle" style="font-size: 0.82rem; color: #4338ca; text-decoration: none; font-weight: 600;">Need an account? Register</a>
+        </p>
+      </div>
+
+      <p style="text-align: center; margin-top: 18px; font-size: 0.72rem; color: #98a2b3; letter-spacing: 0.3px;">
+        SHA-256 hash verification &middot; Hash-chained custody log &middot; JWT-authenticated access
       </p>
     </div>
   </div>
@@ -294,7 +303,7 @@
               </div>
 
               <!-- Right Grid Table Column -->
-              <div class="card" style="grid-column: span 2;">
+              <div class="card" style="grid-column: span 1; min-width: 0;">
                 <h2 class="card-title"><i data-lucide="shield"></i>Registered Evidence Vault</h2>
                 <div class="table-container">
                   <table>

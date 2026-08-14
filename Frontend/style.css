@@ -3,42 +3,46 @@
    ========================================== */
 :root {
   --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  
-  /* Color Palette - Medical/Crime-Lab Aesthetic */
-  --bg-app: #f4f6f9;
-  --bg-sidebar: #0f172a;
+  --font-display: 'Outfit', 'Inter', sans-serif;
+
+  /* Color Palette - refined crime-lab / security-console aesthetic */
+  --bg-app: #f3f5f9;
+  --bg-sidebar: #0b1220;
+  --bg-sidebar-alt: #131c30;
   --bg-card: #ffffff;
-  --text-main: #1e293b;
+  --text-main: #1a2233;
   --text-muted: #64748b;
-  --text-light: #94a3b8;
-  
-  --primary: #2563eb;
-  --primary-hover: #1d4ed8;
-  --primary-light: #eff6ff;
-  
+  --text-light: #98a2b3;
+
+  --primary: #4338ca;
+  --primary-hover: #362ea6;
+  --primary-light: #eef0fd;
+  --accent: #0ea5b7;
+  --accent-light: #e6fbfd;
+
   --success: #10b981;
   --success-light: #ecfdf5;
   --success-text: #065f46;
-  
+
   --warning: #f59e0b;
   --warning-light: #fffbeb;
   --warning-text: #92400e;
-  
-  --danger: #ef4444;
-  --danger-light: #fef2f2;
-  --danger-text: #991b1b;
-  
-  --border-color: #e2e8f0;
-  --border-focus: #3b82f6;
-  
+
+  --danger: #e11d48;
+  --danger-light: #fef1f4;
+  --danger-text: #9f1239;
+
+  --border-color: #e6e9f0;
+  --border-focus: #4338ca;
+
   /* Layout Metrics */
-  --sidebar-width: 260px;
-  --header-height: 70px;
-  --border-radius-sm: 6px;
-  --border-radius-md: 10px;
-  --border-radius-lg: 16px;
-  --box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-  --box-shadow-hover: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.08);
+  --sidebar-width: 264px;
+  --header-height: 72px;
+  --border-radius-sm: 8px;
+  --border-radius-md: 12px;
+  --border-radius-lg: 18px;
+  --box-shadow: 0 1px 2px rgb(16 24 40 / 0.04), 0 1px 3px rgb(16 24 40 / 0.06);
+  --box-shadow-hover: 0 12px 24px -8px rgb(16 24 40 / 0.14), 0 4px 8px -4px rgb(16 24 40 / 0.08);
   --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -52,11 +56,20 @@
 body {
   font-family: var(--font-family);
   background-color: var(--bg-app);
+  background-image:
+    radial-gradient(circle at 0% 0%, rgba(67, 56, 202, 0.05) 0%, transparent 40%),
+    radial-gradient(circle at 100% 0%, rgba(14, 165, 183, 0.05) 0%, transparent 40%);
   color: var(--text-main);
   overflow-x: hidden;
   height: 100vh;
   display: flex;
 }
+
+/* Slim, unobtrusive scrollbars for a more polished feel */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background-color: #cbd2e0; border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background-color: #a7b0c2; }
 
 /* ==========================================
    APP LAYOUT
@@ -70,36 +83,45 @@ body {
 /* Sidebar Navigation */
 sidebar {
   width: var(--sidebar-width);
-  background-color: var(--bg-sidebar);
+  background: linear-gradient(180deg, var(--bg-sidebar) 0%, var(--bg-sidebar-alt) 100%);
   color: #f8fafc;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   z-index: 100;
-  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.18);
 }
 
 .sidebar-header {
-  padding: 24px;
-  border-bottom: 1px solid #1e293b;
+  padding: 26px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
 .sidebar-logo {
+  font-family: var(--font-display);
   font-weight: 800;
-  font-size: 1.15rem;
+  font-size: 1.2rem;
   letter-spacing: 0.5px;
   text-transform: uppercase;
   color: #ffffff;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
+}
+
+.sidebar-logo i {
+  color: var(--accent);
+  filter: drop-shadow(0 0 8px rgba(14, 165, 183, 0.5));
 }
 
 .sidebar-logo span {
-  color: var(--primary);
+  background: linear-gradient(90deg, #818cf8, var(--accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .sidebar-menu {
@@ -107,7 +129,7 @@ sidebar {
   padding: 24px 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   flex-grow: 1;
 }
 
@@ -118,21 +140,22 @@ sidebar {
   padding: 12px 16px;
   color: #94a3b8;
   text-decoration: none;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   font-weight: 500;
   border-radius: var(--border-radius-sm);
   cursor: pointer;
   transition: var(--transition);
 }
 
-.menu-item:hover, .menu-item.active {
+.menu-item:hover {
   color: #ffffff;
-  background-color: #1e293b;
+  background-color: rgba(255, 255, 255, 0.06);
 }
 
 .menu-item.active {
-  background-color: var(--primary);
+  background: linear-gradient(90deg, var(--primary), #5b4fe0);
   color: #ffffff;
+  box-shadow: 0 4px 12px -2px rgba(67, 56, 202, 0.45);
 }
 
 .menu-item i {
@@ -143,7 +166,7 @@ sidebar {
 
 .sidebar-footer {
   padding: 16px 24px;
-  border-top: 1px solid #1e293b;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   font-size: 0.75rem;
   color: #64748b;
   text-align: center;
@@ -170,7 +193,8 @@ header {
 }
 
 .header-title h1 {
-  font-size: 1.25rem;
+  font-family: var(--font-display);
+  font-size: 1.3rem;
   font-weight: 700;
   color: var(--text-main);
 }
@@ -234,6 +258,31 @@ header {
 }
 
 /* ==========================================
+   AUTH / LOGIN SCREEN
+   (structure & most layout are inline in index.html to keep this screen
+   self-contained; these rules just add polish that inline styles can't:
+   focus states, hover states, and a subtle entrance animation.)
+   ========================================== */
+#auth-overlay {
+  animation: fadeIn 0.35s ease;
+  width: 100%;
+}
+
+#auth-overlay input:focus {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px rgba(67, 56, 202, 0.12);
+  outline: none;
+}
+
+#auth-mode-toggle:hover {
+  text-decoration: underline;
+}
+
+#auth-submit-btn:disabled {
+  opacity: 0.65;
+}
+
+/* ==========================================
    UI COMPONENTS & CARDS
    ========================================== */
 .card {
@@ -248,9 +297,11 @@ header {
 
 .card:hover {
   box-shadow: var(--box-shadow-hover);
+  border-color: #dcdfea;
 }
 
 .card-title {
+  font-family: var(--font-display);
   font-size: 1.1rem;
   font-weight: 700;
   color: var(--text-main);
@@ -260,6 +311,12 @@ header {
   gap: 8px;
   border-bottom: 1px solid var(--border-color);
   padding-bottom: 12px;
+}
+
+.card-title i {
+  color: var(--primary);
+  width: 19px;
+  height: 19px;
 }
 
 /* Buttons */
@@ -278,13 +335,18 @@ header {
   text-decoration: none;
 }
 
+.btn:active { transform: translateY(1px); }
+
 .btn-primary {
   background-color: var(--primary);
   color: #ffffff;
+  box-shadow: 0 2px 8px -2px rgba(67, 56, 202, 0.5);
 }
 
 .btn-primary:hover {
   background-color: var(--primary-hover);
+  box-shadow: 0 4px 14px -2px rgba(67, 56, 202, 0.6);
+  transform: translateY(-1px);
 }
 
 .btn-secondary {
@@ -295,6 +357,7 @@ header {
 
 .btn-secondary:hover {
   background-color: var(--bg-app);
+  border-color: #d3d8e5;
 }
 
 .btn-danger {
@@ -303,7 +366,7 @@ header {
 }
 
 .btn-danger:hover {
-  background-color: #dc2626;
+  background-color: #be123c;
 }
 
 .btn-success {
@@ -318,6 +381,35 @@ header {
 .btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  transform: none !important;
+}
+
+/* Small icon-only button, used for destructive row actions (delete) */
+.btn-icon-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--border-radius-sm);
+  border: 1px solid var(--border-color);
+  background-color: #ffffff;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: var(--transition);
+  flex-shrink: 0;
+}
+
+.btn-icon-danger i {
+  width: 15px;
+  height: 15px;
+  pointer-events: none;
+}
+
+.btn-icon-danger:hover {
+  background-color: var(--danger-light);
+  border-color: #f6c6d3;
+  color: var(--danger);
 }
 
 /* Grid Layouts */
@@ -351,11 +443,30 @@ header {
   }
 }
 
+/* Evidence Vault: the registered-evidence table has 7 columns (including
+   the delete action), which doesn't fit comfortably next to a form column
+   on typical laptop widths — cramming both into a side-by-side grid meant
+   either hiding columns behind a horizontal scroll or (worse, before this
+   was fixed) silently clipping them off-screen. Stacking the form above
+   the table instead guarantees the table always gets the full available
+   width. */
+#evidence-active-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+#evidence-active-container > div:first-child {
+  max-width: 640px;
+}
+
 /* Stats Widget */
 .stat-card {
   display: flex;
   align-items: center;
   gap: 20px;
+  position: relative;
+  overflow: hidden;
 }
 
 .stat-icon {
@@ -366,6 +477,7 @@ header {
   align-items: center;
   justify-content: center;
   font-size: 24px;
+  flex-shrink: 0;
 }
 
 .stat-icon.primary { background-color: var(--primary-light); color: var(--primary); }
@@ -374,7 +486,8 @@ header {
 .stat-icon.danger { background-color: var(--danger-light); color: var(--danger); }
 
 .stat-details h3 {
-  font-size: 1.75rem;
+  font-family: var(--font-display);
+  font-size: 1.85rem;
   font-weight: 800;
   color: var(--text-main);
   line-height: 1.1;
@@ -430,7 +543,7 @@ textarea {
 
 input:focus, select:focus, textarea:focus {
   border-color: var(--border-focus);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  box-shadow: 0 0 0 3px rgba(67, 56, 202, 0.12);
 }
 
 textarea {
@@ -458,15 +571,15 @@ th {
   background-color: #f8fafc;
   color: var(--text-main);
   font-weight: 700;
-  padding: 14px 20px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--border-color);
   text-transform: uppercase;
-  font-size: 0.75rem;
-  letter-spacing: 0.5px;
+  font-size: 0.72rem;
+  letter-spacing: 0.6px;
 }
 
 td {
-  padding: 14px 20px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--border-color);
   color: var(--text-main);
   vertical-align: middle;
@@ -476,19 +589,24 @@ tr:last-child td {
   border-bottom: none;
 }
 
+tbody tr:nth-child(even) td {
+  background-color: #fafbfd;
+}
+
 tr:hover td {
-  background-color: #f8fafc;
+  background-color: var(--primary-light);
 }
 
 /* Status Badges */
 .badge {
   display: inline-flex;
   align-items: center;
-  padding: 4px 8px;
-  font-size: 0.75rem;
+  padding: 4px 10px;
+  font-size: 0.72rem;
   font-weight: 700;
   border-radius: 9999px;
   text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
 .badge-success { background-color: var(--success-light); color: var(--success-text); }
