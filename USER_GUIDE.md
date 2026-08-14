@@ -32,7 +32,7 @@ API, a full custody ledger per evidence item, and a hash-chained log (see
 are detectable.
 
 This is a portfolio/demo project, not a certified forensic tool — see the
-**Known Limitations** section of the frontend README for what would still
+**Architecture Notes** section of the frontend README for what would still
 be needed before it could be used in an actual investigation.
 
 ---
@@ -59,9 +59,17 @@ cd Frontend
 npx http-server -p 8080
 ```
 
-Then open your browser to **`http://localhost:8080`** — use `localhost`,
-not any other address (like a VPN or virtual-machine IP), or the backend
-will reject the request due to CORS.
+Then open your browser to **`http://localhost:8080`**.
+
+You can also open the frontend other ways — double-clicking `index.html`
+directly, or using VS Code's "Live Server" extension (port 5500) — without
+any extra setup. The backend's CORS settings (`Backend/.env` →
+`CORS_ORIGIN`) already allow all of these by default. If you serve the
+frontend from somewhere else entirely (a different port, a VM/network IP,
+a deployed URL), add that origin to the comma-separated `CORS_ORIGIN` list
+in `Backend/.env` and restart `python app.py`, or the backend will silently
+reject the requests due to CORS and login/register will appear to do
+nothing.
 
 ---
 
@@ -89,7 +97,7 @@ python seed_demo_data.py
 
 This creates:
 - **One demo case**: a simulated Business Email Compromise investigation
-  (`CASE-DEMO-<timestamp>`)
+  (`CASE-DEMO-BEC-2026`)
 - **Three evidence items** in `Backend/test_evidence/`, each a realistic
   synthetic file you can actually open and inspect:
   - `suspicious_email.eml` — a spoofed executive wire-transfer request
@@ -98,12 +106,23 @@ This creates:
 - **One custody transfer** already recorded, so the ledger and chain
   verification have something to show immediately
 
-It prints a username/password at the end — log in with those in the
-frontend, then select the demo case from the dropdown at the top.
+It prints a username/password at the end:
+- **Username:** `demo_investigator`
+- **Password:** `demo-password-2026`
 
-Because this uses the real `/api` endpoints (not direct DB writes), you
-can safely re-run it any time — it creates a fresh case each time rather
-than colliding with existing data.
+Log in with those in the frontend, then select the demo case from the
+dropdown at the top.
+
+The script is **idempotent** — it uses a fixed case number
+(`CASE-DEMO-BEC-2026`), so re-running it detects that the demo case already
+exists and skips seeding instead of creating a duplicate. This intentionally
+replaces the earlier version of the script, which appended a timestamp to
+the case number and created a brand new demo case on every run — that's
+what caused repeated/duplicate demo cases to pile up in Case Management. If
+you want a completely fresh re-seed, delete the demo case first from the
+Case Management tab (see Section 9 below) — its cascading delete also
+removes the 3 evidence items and custody logs with it — then run the script
+again.
 
 ---
 
@@ -179,11 +198,32 @@ with signatures.
 
 ---
 
-## 10. Troubleshooting
+## 10. Deleting a case or evidence item
+
+Both **Case Management** and **Evidence Vault** have a trash-can icon in
+the Actions column of every row.
+
+- **Deleting an evidence item** removes it and its entire custody log —
+  every transfer recorded against it is gone too.
+- **Deleting a case** cascades: it removes the case itself, every evidence
+  item logged under it, and all of those items' custody logs, in one
+  action.
+
+Both are confirmed with a dialog first — the case-delete confirmation also
+tells you how many evidence items will be removed along with it — since
+neither action can be undone. This is meant for correcting data-entry
+mistakes or resetting test/demo data, not for erasing evidentiary history
+in a real investigation; see the Architecture Notes in the frontend README
+for the reasoning.
+
+---
+
+## 11. Troubleshooting
 
 | Symptom | Likely cause |
 |---|---|
-| "Failed to fetch" on login/register | Frontend loaded from an address other than `localhost` (e.g. a VM IP) — CORS blocks it. Reload via `http://localhost:8080`. |
+| "Can't reach the backend" or "Failed to fetch" on login/register | The backend isn't running, or your frontend's origin isn't in `Backend/.env`'s `CORS_ORIGIN`. Start `python app.py`, and if you're serving the frontend from something other than `localhost:8080`, `127.0.0.1:8080`, `localhost:5500`, `127.0.0.1:5500`, or `file://`, add that origin to `CORS_ORIGIN` and restart the backend. |
 | Blank dashboard after login | No case selected yet, or no cases exist — create one or run the seeder. |
 | "Cannot GET /" in browser | Normal — there's no route for `/` itself, only `/api/...`. Use `/api/health` to test the backend directly. |
 | Backend errors on startup | Check `.env` exists in `Backend/` (copied from `.env.example`) and you're running `python app.py` from inside `Backend/`, not the project root. |
+| Ran the seed script twice and expected two demo cases | Expected — the seeder is idempotent by design (see Section 4) and skips re-seeding if the demo case already exists. |
