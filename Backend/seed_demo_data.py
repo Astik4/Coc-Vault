@@ -2,30 +2,34 @@
 ==============================================================================
 DEMO DATA SEEDER
 ==============================================================================
-Populates CoC Vault with a realistic demo case + evidence items + a custody
-transfer, using the actual running API (not direct DB writes) — so this
-doubles as a smoke test that your backend is working end to end.
+Populates CoC Vault with one realistic demo case + exactly 3 evidence items
+(matching the 3 files in test_evidence/) + a custody transfer, using the
+actual running API (not direct DB writes) — so this doubles as a smoke test
+that your backend is working end to end.
 
 Usage:
     1. Start the backend:  python app.py
     2. In another terminal, from this same folder, run:
            python seed_demo_data.py
 
-Safe to re-run — it uses a fresh case number each time by appending a
-timestamp, so it won't collide with existing data.
+Idempotent — the case number is fixed (CASE-DEMO-BEC-2026), so re-running
+this script detects the existing demo case and evidence instead of creating
+duplicates. Delete the case from the Case Management tab first (this also
+removes its evidence via the API's cascading delete) if you want a clean
+re-seed.
 ==============================================================================
 """
 
 import requests
 import hashlib
 import os
-import datetime
 
 API_BASE = "http://localhost:4000/api"
 TEST_EVIDENCE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test_evidence")
 
 DEMO_USERNAME = "demo_investigator"
 DEMO_PASSWORD = "demo-password-2026"
+DEMO_CASE_NUMBER = "CASE-DEMO-BEC-2026"
 
 
 def sha256_of_file(path):
@@ -61,9 +65,27 @@ def main():
     token = get_token()
     headers = {"Authorization": f"Bearer {token}"}
 
-    case_number = f"CASE-DEMO-{datetime.datetime.now().strftime('%Y%m%d-%H%M%S')}"
+    # Idempotency check — if the demo case already exists, don't create a
+    # second copy of it (this is what previously caused duplicate demo
+    # cases to pile up in Case Management every time the script was run).
+    existing_cases = requests.get(f"{API_BASE}/cases", headers=headers)
+    existing_cases.raise_for_status()
+    already_seeded = next((c for c in existing_cases.json() if c["case_number"] == DEMO_CASE_NUMBER), None)
+
+    if already_seeded:
+        print(f"Demo case '{DEMO_CASE_NUMBER}' already exists (id={already_seeded['id']}) — skipping seed.")
+        print(f"Delete it from the Case Management tab first if you want a fresh re-seed.")
+        print()
+        print("=" * 70)
+        print("Log in to the frontend as:")
+        print(f"  Username: {DEMO_USERNAME}")
+        print(f"  Password: {DEMO_PASSWORD}")
+        print(f"Then select case {DEMO_CASE_NUMBER} from the dropdown.")
+        print("=" * 70)
+        return
+
     case_resp = requests.post(f"{API_BASE}/cases", headers=headers, json={
-        "caseNumber": case_number,
+        "caseNumber": DEMO_CASE_NUMBER,
         "leadInvestigator": "Agent Priya Nair",
         "badgeId": "Badge #4471",
         "agency": "Cyber Crime Investigation Cell",
@@ -80,6 +102,7 @@ def main():
     case = case_resp.json()
     print(f"Created case: {case['case_number']} (id={case['id']})")
 
+    # Exactly 3 evidence items, matching the 3 files in test_evidence/
     evidence_items = [
         {
             "file": "suspicious_email.eml",

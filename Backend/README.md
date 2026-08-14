@@ -33,8 +33,8 @@ db.py                — SQLite connection handling, schema, hash-chain helper
 auth_utils.py         — JWT signing/verification, @token_required decorator
 routes/
   auth.py             — POST /api/auth/register, /api/auth/login
-  cases.py            — GET/POST /api/cases
-  evidence.py          — GET/POST /api/evidence, transfer + verify-chain
+  cases.py            — GET/POST /api/cases, DELETE /api/cases/<id> (cascades)
+  evidence.py          — GET/POST /api/evidence, transfer + verify-chain, DELETE /api/evidence/<id>
 ```
 
 This mirrors a typical Flask app structure — one blueprint per resource,
@@ -44,12 +44,16 @@ same pattern you've used in BOLAHawk/SecurScout.
 
 ## Demo / test data
 
-`test_evidence/` contains three realistic synthetic evidence files (a
-spoofed executive email, suspicious auth logs, a flagged transaction
+`test_evidence/` contains exactly three realistic synthetic evidence files
+(a spoofed executive email, suspicious auth logs, a flagged transaction
 export) for a simulated Business Email Compromise case. Run
 `python seed_demo_data.py` (with the server already running) to load a
 full demo case — case, evidence, hashes, and one custody transfer — through
-the real API. See `USER_GUIDE.md` in the project root for the full walkthrough.
+the real API. The script is idempotent: it uses a fixed case number
+(`CASE-DEMO-BEC-2026`) and detects if that case already exists rather than
+creating a duplicate on every run, so you always end up with exactly one
+demo case and 3 evidence items, never a pile-up of repeated demo cases.
+See `USER_GUIDE.md` in the project root for the full walkthrough.
 
 ## Setup
 
@@ -67,6 +71,14 @@ is created automatically on first run.
 
 Health check: `GET http://localhost:4000/api/health` → `{"status":"ok"}`
 
+### CORS
+
+`CORS_ORIGIN` in `.env` accepts a comma-separated list of origins, so the
+frontend works whether you run it via `npx http-server -p 8080`, VS Code's
+Live Server (port 5500), or by opening `index.html` directly (`file://`,
+which sends `Origin: null`). The default value already covers all three —
+add your own origin to the list if you serve the frontend somewhere else.
+
 ---
 
 ## API Reference
@@ -81,19 +93,21 @@ All routes except `/api/health` and `/api/auth/*` require:
 | POST | `/api/auth/login` | `{ username, password }` | returns `{ token, user }` |
 
 ### Cases
-| Method | Route | Body |
-|---|---|---|
-| GET | `/api/cases` | — |
-| POST | `/api/cases` | `{ caseNumber, leadInvestigator, badgeId, agency, suspect, incidentDate, notes }` |
-| GET | `/api/cases/<id>` | — |
+| Method | Route | Body | Notes |
+|---|---|---|---|
+| GET | `/api/cases` | — | |
+| POST | `/api/cases` | `{ caseNumber, leadInvestigator, badgeId, agency, suspect, incidentDate, notes }` | |
+| GET | `/api/cases/<id>` | — | |
+| DELETE | `/api/cases/<id>` | — | Cascades: deletes all evidence under the case and their custody logs. Returns `{ deleted, caseId, evidenceItemsDeleted }`. |
 
 ### Evidence
-| Method | Route | Body |
-|---|---|---|
-| GET | `/api/evidence?caseId=...` | — (caseId optional filter) |
-| POST | `/api/evidence` | `{ caseId, itemId, evidenceType, makeModel, locationFound, collectedBy, fileHash }` |
-| POST | `/api/evidence/<evidenceId>/transfer` | `{ releasedBy, receivedBy, releasedSig, receivedSig, location, purpose, notes }` |
-| GET | `/api/evidence/<evidenceId>/verify-chain` | — returns `{ intact, message, brokenAtSequence? }` |
+| Method | Route | Body | Notes |
+|---|---|---|---|
+| GET | `/api/evidence?caseId=...` | — | caseId optional filter |
+| POST | `/api/evidence` | `{ caseId, itemId, evidenceType, makeModel, locationFound, collectedBy, fileHash }` | |
+| POST | `/api/evidence/<evidenceId>/transfer` | `{ releasedBy, receivedBy, releasedSig, receivedSig, location, purpose, notes }` | |
+| GET | `/api/evidence/<evidenceId>/verify-chain` | — | returns `{ intact, message, brokenAtSequence? }` |
+| DELETE | `/api/evidence/<evidenceId>` | — | Deletes the item and its full custody log. Returns `{ deleted, evidenceId }`. |
 
 The frontend's `api.js` already points at these exact routes — no frontend
 changes are needed switching from the Node version to this one, only the
@@ -117,4 +131,5 @@ more "impressive" on paper.
 - Passwords hashed with Werkzeug's `generate_password_hash` (scrypt-based, salted) — never stored plaintext.
 - JWT expires after 8 hours.
 - Basic rate limiting on `/api/auth/*` (20 requests / 15 min) via Flask-Limiter.
-- **Not yet done, worth adding if you keep building this:** per-case access control (any logged-in user can currently see any case), HTTPS enforcement in production, refresh tokens, a production WSGI server (the built-in `app.run()` server says so itself — use gunicorn/waitress for real deployment), audit logging of *who* queried what.
+- Case and evidence delete are hard deletes with server-side cascade (deleting a case also deletes its evidence and custody logs) — there's no "trash"/undo, so the frontend confirms before calling these routes.
+- **Not yet done, worth adding if you keep building this:** per-case access control (any logged-in user can currently see, edit, and delete any case), soft-delete/archival instead of hard delete, HTTPS enforcement in production, refresh tokens, a production WSGI server (the built-in `app.run()` server says so itself — use gunicorn/waitress for real deployment), audit logging of *who* queried or deleted what.

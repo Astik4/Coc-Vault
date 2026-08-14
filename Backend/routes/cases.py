@@ -62,3 +62,30 @@ def get_case(case_id):
     if not row:
         return jsonify({'error': 'case not found'}), 404
     return jsonify(row_to_dict(row))
+
+
+@cases_bp.route('/<case_id>', methods=['DELETE'])
+@token_required
+def delete_case(case_id):
+    """Deletes a case and cascades to its evidence items and their custody
+    logs. This is meant for correcting data-entry mistakes (e.g. a case
+    opened by accident) — in a production CoC system you'd normally close
+    or void a case rather than erase it, to preserve the audit trail."""
+    db = get_db()
+    case_row = db.execute('SELECT id FROM cases WHERE id = ?', (case_id,)).fetchone()
+    if not case_row:
+        return jsonify({'error': 'case not found'}), 404
+
+    evidence_ids = [r['id'] for r in db.execute('SELECT id FROM evidence WHERE case_id = ?', (case_id,)).fetchall()]
+
+    try:
+        for evidence_id in evidence_ids:
+            db.execute('DELETE FROM custody_log WHERE evidence_id = ?', (evidence_id,))
+        db.execute('DELETE FROM evidence WHERE case_id = ?', (case_id,))
+        db.execute('DELETE FROM cases WHERE id = ?', (case_id,))
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+
+    return jsonify({'deleted': True, 'caseId': case_id, 'evidenceItemsDeleted': len(evidence_ids)})

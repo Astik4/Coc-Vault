@@ -158,6 +158,28 @@ def transfer_evidence(evidence_id):
     return jsonify(attach_custody_history(db, updated)), 201
 
 
+@evidence_bp.route('/<evidence_id>', methods=['DELETE'])
+@token_required
+def delete_evidence(evidence_id):
+    """Deletes one evidence item and its full custody log. Meant for
+    correcting a mis-logged item, not for erasing evidentiary history in
+    a real investigation — see the note on the case-delete route."""
+    db = get_db()
+    evidence_row = db.execute('SELECT id FROM evidence WHERE id = ?', (evidence_id,)).fetchone()
+    if not evidence_row:
+        return jsonify({'error': 'evidence item not found'}), 404
+
+    try:
+        db.execute('DELETE FROM custody_log WHERE evidence_id = ?', (evidence_id,))
+        db.execute('DELETE FROM evidence WHERE id = ?', (evidence_id,))
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+
+    return jsonify({'deleted': True, 'evidenceId': evidence_id})
+
+
 @evidence_bp.route('/<evidence_id>/verify-chain', methods=['GET'])
 @token_required
 def verify_chain(evidence_id):
