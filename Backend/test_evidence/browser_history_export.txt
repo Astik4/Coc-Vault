@@ -1,0 +1,30 @@
+BROWSER HISTORY FORENSIC EXPORT
+Case Reference: CASE-DEMO-INSIDER-2026
+Export Tool: FTK Imager 4.7.1 / Browser History Examiner 3.2
+Export Date: 2026-07-28
+Examiner: Agent Kavya Sharma, Badge #3302
+
+Browser: Google Chrome (v126.0)
+Profile: Default
+Source Device: HP EliteBook 840, S/N: 5CG1193PBK
+Acquisition Method: Live triage — disk image not yet available
+
+[SUSPICIOUS NAVIGATION HISTORY — SORTED BY TIMESTAMP]
+
+2026-07-27 22:48:11 | https://www.linkedin.com/jobs/search/?keywords=data+analyst&location=Singapore
+2026-07-27 22:52:30 | https://glassdoor.com/salaries/singapore-data-analyst-salary
+2026-07-27 22:59:44 | https://wetransfer.com/
+2026-07-27 23:01:07 | https://wetransfer.com/downloads/[transfer-id-redacted]/confirm
+2026-07-27 23:02:19 | https://www.protonmail.com/login
+2026-07-27 23:03:41 | https://mail.proton.me/inbox (session login: kavyas.backup.2026@proton.me)
+2026-07-27 23:04:58 | https://drive.google.com/drive/folders/1xVZ... (external shared folder)
+2026-07-27 23:18:22 | https://www.kayak.com/flights/BOM-SIN
+2026-07-27 23:29:44 | Chrome session terminated (process exit)
+
+[DOWNLOADS FLAGGED]
+- customers_full_db_backup_jul26.sql.gz  (2.3 GB) — origin: internal NAS
+- salary_bands_2026_confidential.xlsx   (740 KB) — origin: SharePoint
+- product_roadmap_Q3Q4_2026.pptx        (1.1 GB) — origin: Teams shared library
+
+Analyst Notes: Navigation pattern indicates pre-meditated data exfiltration. Job search activity
+immediately preceding file transfers to external destinations is consistent with insider threat / departing employee scenario.

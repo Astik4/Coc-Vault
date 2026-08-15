@@ -1,0 +1,15 @@
+Filename: C:\Users\drive0\ext_usb_drive_logs.csv
+Device: SanDisk Ultra USB 3.0, 64GB
+Serial: SDCZ48-064G-G46
+Collected: 2026-07-28T08:44:00Z
+Collector: Agent Kavya Sharma, Badge #3302
+Hash-at-Collection: (calculated by CoC Vault)
+
+Timestamp,Event,FileSize,SHA256,Destination
+2026-07-27 23:04:12,File Write,2.3 GB,a1b2c3d4e5f6...,\\192.168.10.44\share\confidential
+2026-07-27 23:11:55,File Write,740 MB,f6e5d4c3b2a1...,\\192.168.10.44\share\confidential
+2026-07-27 23:19:38,File Write,1.1 GB,deadbeef0123...,\\192.168.10.44\share\confidential
+2026-07-27 23:31:07,Device Removed,-,-,-
+
+Note: All write events occurred outside business hours (23:00-23:31 local).
+Destination IP 192.168.10.44 is an unregistered NAS not approved by IT.

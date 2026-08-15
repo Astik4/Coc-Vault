@@ -1,154 +1,202 @@
-# CoC Vault - Digital Forensics Chain of Custody System
+# CoC Vault — Frontend
 
-A professional, web-based **Digital Forensics Incident Response (DFIR) Evidence Vault & Chain of Custody Manager**. CoC Vault lets investigators register user accounts, log evidence, calculate cryptographic file fingerprints, record chronological custody transfers with on-screen electronic signatures, check for evidence tampering, and export court-admissible audit reports — all backed by a real Flask API with JWT authentication and a hash-chained custody ledger (see `../Backend/README.md`).
+> Vanilla SPA frontend for the CoC Vault Digital Forensics Chain of Custody System.
 
 ---
 
-## 🚀 How to Run the Application
+## Overview
 
-This is a front-end SPA that talks to the Flask backend in `../Backend`. **Start the backend first** (`python app.py` from the `Backend` folder), then run the frontend with any of these:
+This is the browser-based Single-Page Application (SPA) for CoC Vault. It communicates with the Flask REST API in `../Backend` over HTTPS/HTTP and stores only a short-lived session token in `sessionStorage`. All cryptographic operations (SHA-256 file hashing) run client-side using the browser's native **Web Crypto API** (`crypto.subtle`) — no third-party crypto libraries.
 
-1.  **Dev server (recommended):**
-    ```bash
-    npx http-server -p 8080
-    ```
-    Then open **[http://localhost:8080](http://localhost:8080)**.
-2.  **VS Code "Live Server" extension** — works out of the box (default port 5500).
-3.  **Double-click `index.html`** — also works directly via `file://`.
+---
 
-All three are pre-approved in the backend's CORS settings (`Backend/.env` → `CORS_ORIGIN`), so login/register will work from any of them. If you serve the frontend from a different port/origin, add it to that comma-separated list and restart the backend.
+## Running the Frontend
 
-> **Login page not responding / stuck / no error shown?** Open the browser DevTools console (F12). If you see a CORS or "Failed to fetch" error, the backend isn't running, or your frontend's origin isn't in `Backend/.env`'s `CORS_ORIGIN`. Add it, restart `python app.py`, and reload.
+> **Start the backend first.** See `../Backend` for instructions.
 
-### Fastest way to see it fully populated
+Once the Flask API is running on `http://localhost:4000`, serve this directory with any of the following:
 
-The project ships with a seeded demo case so you don't have to build one by hand to see the app in action:
+| Method | Command | Default URL |
+|---|---|---|
+| **npx http-server** *(recommended)* | `npx http-server -p 8080` | http://localhost:8080 |
+| **VS Code Live Server** | Install extension → click Go Live | http://localhost:5500 |
+| **Direct file open** | Open `index.html` in browser | `file://` |
+
+All three origins are pre-approved in `Backend/.env` → `CORS_ORIGIN`. If you serve from a different port, add it to that list and restart the backend.
+
+> **Login not working?** Open DevTools (F12) → Console. A "Failed to fetch" or CORS error means the backend is not running, or your origin isn't in `CORS_ORIGIN`.
+
+---
+
+## Quick Demo (Recommended First Run)
 
 ```bash
+# Terminal 1 — start the backend
 cd ../Backend
-python app.py                 # in one terminal
-python seed_demo_data.py      # in another, once the server is up
+python app.py
+
+# Terminal 2 — seed two demo cases with evidence
+cd ../Backend
+python seed_demo_data.py
+
+# Terminal 3 — serve the frontend
+cd ../Frontend
+npx http-server -p 8080
 ```
 
-Then sign in with:
-- **Username:** `demo_investigator`
-- **Password:** `demo-password-2026`
+Then open **http://localhost:8080** and sign in with:
 
-This loads one case (`CASE-DEMO-BEC-2026`, a simulated Business Email Compromise investigation) with exactly 3 evidence items and one recorded custody transfer, so the Evidence Vault, Custody Ledger, and Integrity Checker tabs all have real data to demo immediately. The seed script is idempotent — running it again detects the existing demo case and skips it instead of creating a duplicate.
+| Field | Value |
+|---|---|
+| **Username** | `demo_investigator` |
+| **Password** | `demo-password-2026` |
 
----
+The seeder creates **two pre-populated forensic cases**:
 
-## 🧪 Quick Start & Testing Protocol
+| Case Number | Scenario | Evidence Items |
+|---|---|---|
+| `CASE-DEMO-BEC-2026` | Business Email Compromise | 3 items + 1 custody transfer |
+| `CASE-DEMO-INSIDER-2026` | Insider Threat / Data Exfiltration | 2 items + 1 custody transfer |
 
-Prefer to build it yourself from a blank account? Follow this step-by-step protocol to simulate a real digital forensics investigation workflow:
-
-### Step 0: Sign In
-Register a new investigator account from the login screen (or use the seeded `demo_investigator` account above).
-
-### Step 1: Create a Test File (Your Evidence)
-To test the cryptographic hashing and integrity check, you need a sample file:
-1.  Open **Notepad** (or any text editor) on your computer.
-2.  Type a sample sentence (e.g., `Forensic Image copy of Server logs - August 2026`).
-3.  Save the file to your Desktop as **`evidence.txt`**.
+The seeder is idempotent — re-running it detects existing cases and skips them safely.
 
 ---
 
-### Step 2: Initialize a Case Profile
-1.  Click the blue **`+ New Case`** button in the top-right corner.
-2.  Complete the case metadata:
-    *   **Case Number:** `CASE-2026-F812` (or choose your own)
-    *   **Lead Investigator:** `Agent Sarah Jenkins`
-    *   **Badge ID:** `Badge #9482`
-    *   **Agency:** `Federal Cyber Defence Directorate`
-    *   **Suspect:** `Marcus Vance`
-    *   **Notes:** `Investigation into network logs tampering and data exfiltration.`
-3.  Click **"Initialize Case File"**.
-4.  Ensure this case is selected in the **Active Case** dropdown at the top of the screen.
+## Full Testing Protocol
+
+Follow this guide to simulate a real DFIR workflow from scratch.
+
+### Step 0 — Create an Account
+
+On the login screen, click **"Need an account? Register"** and create your investigator account. Or use the seeded `demo_investigator` credentials above.
 
 ---
 
-### Step 3: Register Your Evidence & Calculate Hash
-1.  Navigate to the **Evidence Vault** tab in the left sidebar.
-2.  Under **Log New Evidence** (the left form), fill in:
-    *   **Evidence Item ID:** `EVD-001`
-    *   **Evidence Type:** `Logical Files/Folder`
-    *   **Make/Model & Serial:** `Desktop evidence.txt`
-    *   **Location Found:** `Suspect C: drive Desktop`
-    *   **Collected By:** `Agent Sarah Jenkins`
-3.  Click the dashed box that says **"Calculate Hash from File"**.
-4.  Select the **`evidence.txt`** file you created in Step 1.
-5.  The app will instantly calculate the file's **SHA-256 hash** (e.g., `e3b0c442...`). This acts as the unchangeable digital seal for the evidence.
-6.  Click **"Secure & Log Item"**. It will appear in the vault grid on the right.
+### Step 1 — Prepare a Test Evidence File
+
+To test hashing and the tamper alarm, create a simple text file:
+
+1. Open Notepad (or any editor)
+2. Type: `Forensic Image — Server Logs — August 2026`
+3. Save to Desktop as **`evidence.txt`**
 
 ---
 
-### Step 4: Record a Custody Transfer (E-Signatures)
-1.  Navigate to the **Custody Ledger** tab in the sidebar.
-2.  Select `EVD-001` from the dropdown. You will see its metadata and hash preview.
-3.  Click **"Record Transfer"** on the ledger card.
-4.  In the transfer form:
-    *   "Released By" is pre-filled with the current custodian.
-    *   **Received By:** `Analyst Bob Miller`
-    *   **Purpose:** `Forensic Analysis / Imaging`
-    *   **Location:** `Forensic Lab Room 204`
-5.  **Authorize with Signatures:** Use your mouse, trackpad, or touch screen to draw hand-written signatures inside the two canvas boxes for the Releasing and Receiving officers.
-6.  Click **"Authorize & Log Transfer"**.
-7.  The timeline will instantly draw a new chronological transfer node, displaying the handoff details and signature image trails.
+### Step 2 — Create a Case
+
+You can create a case in two ways:
+- Click **`+ New Case`** in the **top header bar** (always visible)
+- Click **`+ New Case File`** inside the **Case Management** tab (same modal)
+
+Fill in the case form:
+
+| Field | Example Value |
+|---|---|
+| **Case Number** | `CASE-2026-F812` |
+| **Lead Investigator** | `Agent Sarah Jenkins` |
+| **Badge ID** | `Badge #9482` |
+| **Agency** | `Federal Cyber Defence Directorate` |
+| **Suspect/Target** | `Marcus Vance` |
+| **Incident Date** | *(auto-filled today)* |
+| **Notes** | `Network log tampering and data exfiltration investigation.` |
+
+Click **"Initialize Case File"**. Select this case from the **Active Case** dropdown in the top bar.
 
 ---
 
-### Step 5: Test the Tamper Alarm (Integrity Checker)
-1.  Navigate to the **Integrity Checker** tab.
-2.  Select case `CASE-2026-F812` and item `EVD-001`. The system displays the registered hash.
-3.  Under "Upload File for Verification", click or drag-and-drop your **`evidence.txt`** file.
-    *   **Result:** The system calculates the hash and displays a green banner: **"Integrity Secure (MATCHED)"**.
-4.  Now, open **`evidence.txt`** on your Desktop in Notepad, add a single character (like a space or full stop), save it, and upload it again.
-    *   **Result:** The system recalculates the hash, detects a mismatch, and triggers a red warning banner: **"Integrity Broken (TAMPERED)"**.
+### Step 3 — Register Evidence & Calculate Hash
+
+1. Navigate to **Evidence Vault** in the sidebar
+2. Fill in the **Log New Evidence** form:
+   - **Item ID:** `EVD-001`
+   - **Type:** `Logical Files/Folder`
+   - **Make/Model:** `Desktop evidence.txt`
+   - **Location Found:** `Suspect Desktop — Drive C`
+   - **Collected By:** `Agent Sarah Jenkins`
+3. Click the dashed dropzone **"Calculate Hash from File"** and select your `evidence.txt`
+4. The SHA-256 hash is calculated instantly in-browser (no upload occurs)
+5. Click **"Secure & Log Item"** — the item appears in the Registered Evidence Vault table
 
 ---
 
-### Step 6: Export Court-Admissible Reports
-1.  Return to the **Custody Ledger** tab.
-2.  With your evidence selected, click **"Download PDF Report"** (or **"Print Report"** to print).
-3.  The system compiles the case details, evidence table, SHA-256 target hash, and the complete signed custody timeline into a clean, double-bordered legal A4 PDF document.
+### Step 4 — Record a Custody Transfer (Electronic Signatures)
+
+1. Navigate to **Custody Ledger** in the sidebar
+2. Select `EVD-001` from the dropdown — you'll see its hash and metadata preview
+3. Click **"Record Transfer"**
+4. Fill in the transfer modal:
+   - **Received By:** `Analyst Bob Miller`
+   - **Purpose:** `Forensic Analysis / Imaging`
+   - **Location:** `Forensic Lab Room 204`
+5. Draw hand-written signatures in both canvas pads (mouse, touch, or trackpad)
+6. Click **"Authorize & Log Transfer"**
+
+The ledger timeline renders a new chronological entry with the handoff details and signature image.
 
 ---
 
-### Step 7: Removing a Case or Evidence Item
+### Step 5 — Test the Tamper Alarm
 
-Made a mistake, or want to reset your demo data? Both **Case Management** and **Evidence Vault** have a trash-can button in the Actions column of each row:
-
-- **Delete Evidence** removes that item and its entire custody log.
-- **Delete Case** removes the case *and cascades* — all evidence items and custody logs under that case are deleted along with it.
-
-Both actions ask for confirmation first (and the case delete tells you how many evidence items will go with it) since neither can be undone.
-
----
-
-## 📁 File Structure
-
-*   [`index.html`](index.html): The main web interface, login/register screen, layouts, modal structures, and PDF template.
-*   [`style.css`](style.css): Design system (colors, type, spacing), sidebar/card/table/badge/modal styling, timeline elements, and print overrides.
-*   [`app.js`](app.js): Application logic — auth gate, tab navigation, form handling, WebCrypto SHA-256 hashing, canvas signature pads, custody timeline rendering, and PDF export.
-*   [`api.js`](api.js): The API client — wraps every backend call (`fetch` to `../Backend`), manages the session token in `sessionStorage`, and maps backend field names to the shapes the UI expects.
-*   [`README.md`](README.md): This documentation guide.
+1. Navigate to **Integrity Checker** in the sidebar
+2. Select case `CASE-2026-F812` → item `EVD-001`
+3. Upload `evidence.txt` via the dropzone
+   - ✅ **Matched:** Green banner — hash is identical, file is unaltered
+4. Now open `evidence.txt` in Notepad, add a space, save it, and upload again
+   - 🔴 **Tampered:** Red warning banner — hash mismatch detected
 
 ---
 
-## 🔐 Architecture Notes
+### Step 6 — Export a Court-Admissible PDF Report
 
-CoC Vault is a two-part project: this static frontend, and the Flask + SQLite API in `../Backend`. Every case, evidence item, and custody entry lives server-side — the frontend only keeps a short-lived session token in `sessionStorage`.
+1. Return to **Custody Ledger**
+2. With your evidence item selected, the **Forensic Audit Reports** card appears
+3. Click **"Download PDF Report"** to generate an A4 PDF with:
+   - Case header and investigator details
+   - Evidence metadata table
+   - Registered SHA-256 hash
+   - Full signed custody timeline
 
-**What's real and verifiable:**
-- **File integrity verification.** Hashes are computed with the browser's native `crypto.subtle.digest('SHA-256', ...)` (Web Crypto API), not a JS reimplementation, so the hash values themselves are trustworthy.
-- **Authentication.** Every account is password-hashed server-side (Werkzeug's scrypt-based `generate_password_hash`) and every API call (besides login/register) requires a valid JWT.
-- **Tamper-evident custody log.** Each custody entry's hash is chained to the previous entry's hash (`GET /api/evidence/<id>/verify-chain` re-walks and recomputes every hash). If a row is edited directly in the database — bypassing the API — the chain breaks from that point forward and the app reports exactly where.
-- **The custody workflow is domain-accurate.** Each transfer records releasedBy/receivedBy/purpose/location/timestamp with a sequence number, matching how physical CoC forms are structured in real investigations.
+---
 
-**What this project doesn't claim to be production-grade at:**
-- **Signatures are images, not signatures.** The canvas captures a drawn signature as an image blob. It proves someone drew something on that screen, not that a specific authenticated person authorized the transfer — it has no non-repudiation value.
-- **No per-case access control.** Any logged-in investigator can currently see and act on any case; there's no per-user or per-role permission boundary yet.
-- **Hard delete, not archival.** Deleting a case or evidence item (see Step 7 above) permanently removes it. A production CoC system would more likely support closing/voiding a case instead, to preserve the audit trail — hard delete is kept here because it's the more useful behaviour for correcting demo/test data during development and grading.
-- **Dev server only.** The backend runs on Flask's built-in development server, not a production WSGI server (gunicorn/waitress) — see `Backend/README.md` for what a real deployment would add.
+### Step 7 — Managing Cases (Add More Cases Anytime)
 
-These are exactly the kind of trade-offs worth being able to explain in an interview or project review — they show you know where the current trust boundary sits, not just that the demo works.
+You can create **unlimited cases** at any time:
+- Use **`+ New Case`** in the top bar
+- Use **`+ New Case File`** in the Case Management tab
+
+Switch between cases with the **Active Case** dropdown in the top bar. All evidence and custody data is isolated per case.
+
+To clean up test data:
+- **Delete Evidence** — removes the item and its custody log
+- **Delete Case** — removes the case *and* cascades to all its evidence items and logs
+
+Both actions prompt for confirmation first.
+
+---
+
+## File Structure
+
+| File | Purpose |
+|---|---|
+| [`index.html`](index.html) | Main UI layout, auth overlay, tab panes, modals, PDF print template |
+| [`style.css`](style.css) | Full design system — colors, typography, sidebar, cards, tables, timeline, print CSS |
+| [`app.js`](app.js) | Application logic — auth gate, tab navigation, forms, SHA-256 hashing, signature pads, PDF export |
+| [`api.js`](api.js) | API client — fetch wrapper, session token management, field-name mapping |
+
+---
+
+## Security Notes
+
+- File hashing uses `crypto.subtle.digest('SHA-256', ...)` — the browser's **native** Web Crypto API, not a JS reimplementation
+- Session tokens are stored in `sessionStorage` (cleared when the tab closes, never in localStorage)
+- Third-party CDN scripts (`lucide`, `html2pdf.js`) are pinned to exact versions with **SRI integrity hashes** and `crossorigin="anonymous"` attributes
+
+---
+
+## Architecture Notes
+
+- **No data is stored in the browser.** All cases, evidence, and custody entries live in the Flask + SQLite backend
+- **The custody hash chain** is server-side. Each entry is chained to its predecessor's HMAC — editing the DB directly breaks the chain and is detected by the `/verify-chain` endpoint
+- **Signatures are images.** The canvas captures a drawn stroke as a PNG blob — sufficient for audit trail, but not a cryptographic non-repudiation signature
+
+See the [root README](../README.md) for the full architecture overview, API reference, and security notes.

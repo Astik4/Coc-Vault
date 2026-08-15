@@ -18,10 +18,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
   
   <!-- Lucide Icons Library -->
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://unpkg.com/lucide@0.400.0/dist/umd/lucide.min.js" integrity="sha384-8aPDSS8PITpbbP5u/xl0pTc7N8yU/dHjXBQwa2hJzZ2FEFd73n1pK5dSgaIYSZOf" crossorigin="anonymous"></script>
   
   <!-- html2pdf.js for exporting court-ready reports -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
 <body>
 
@@ -193,7 +193,15 @@
              ========================================== -->
         <div id="cases-tab" class="tab-pane">
           <div class="card">
-            <h2 class="card-title"><i data-lucide="list"></i>Forensic Case Directory</h2>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 12px;">
+              <div>
+                <h2 class="card-title" style="margin-bottom: 2px;"><i data-lucide="list"></i>Forensic Case Directory</h2>
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin: 0; padding-left: 28px;">All active forensic case files in the system.</p>
+              </div>
+              <button class="btn btn-primary" id="btn-open-case-modal-2" style="white-space: nowrap;">
+                <i data-lucide="plus-circle"></i>New Case File
+              </button>
+            </div>
             <div class="table-container">
               <table>
                 <thead>
@@ -208,11 +216,11 @@
                   </tr>
                 </thead>
                 <tbody id="case-table-body">
-                  <!-- Case rows -->
+                  <!-- Case rows dynamically rendered -->
                   <tr>
                     <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 40px 0;">
                       <i data-lucide="folder" style="width: 32px; height: 32px; stroke-width: 1.5; margin-bottom: 8px; color: var(--text-light); display: block; margin-left: auto; margin-right: auto;"></i>
-                      No forensic cases logged in system.
+                      No forensic cases logged. Click <strong>New Case File</strong> to begin.
                     </td>
                   </tr>
                 </tbody>

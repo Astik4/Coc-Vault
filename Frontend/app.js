@@ -351,6 +351,9 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     btnOpenCaseModal.addEventListener('click', openCaseModal);
+    // Second "New Case File" button lives in the Case Management card header
+    const btnOpenCaseModal2 = document.getElementById('btn-open-case-modal-2');
+    if (btnOpenCaseModal2) btnOpenCaseModal2.addEventListener('click', openCaseModal);
     caseModalClose.addEventListener('click', closeCaseModal);
     btnCancelCase.addEventListener('click', closeCaseModal);
 

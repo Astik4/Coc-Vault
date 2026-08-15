@@ -71,4 +71,6 @@ def server_error(e):
 if __name__ == '__main__':
     init_db()
     port = int(os.environ.get('PORT', 4000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    debug_mode = os.environ.get('FLASK_DEBUG', 'False').lower() in ('true', '1')
+    host_ip = os.environ.get('FLASK_HOST', '127.0.0.1')
+    app.run(host=host_ip, port=port, debug=debug_mode)
