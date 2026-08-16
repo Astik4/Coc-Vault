@@ -1,4 +1,17 @@
 /* ==========================================================================
+   HTML ESCAPING — user-entered text (case/evidence/custody fields) is
+   rendered via innerHTML template literals throughout this file. Escaping
+   it here prevents a stored-XSS payload (e.g. a case investigator name
+   containing a <script> or onerror= attribute) from executing when it's
+   displayed to any user.
+   ========================================================================== */
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (ch) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[ch]));
+}
+
+/* ==========================================================================
    SIGNATURE PAD CLASS  (unchanged from the original prototype)
    ========================================================================== */
 class SignaturePad {
@@ -316,7 +329,7 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         casesCache.forEach(c => {
           const selectedAttr = c.backendId === activeCaseBackendId ? 'selected' : '';
-          caseSelect.innerHTML += `<option value="${c.backendId}" ${selectedAttr}>${c.id} - ${c.investigator}</option>`;
+          caseSelect.innerHTML += `<option value="${c.backendId}" ${selectedAttr}>${escapeHtml(c.id)} - ${escapeHtml(c.investigator)}</option>`;
         });
       }
 
@@ -325,7 +338,7 @@ document.addEventListener('DOMContentLoaded', () => {
         integrityCaseSelect.innerHTML = '<option value="" disabled selected>Choose Case...</option>';
         casesCache.forEach(c => {
           const selectedAttr = c.backendId === activeCaseBackendId ? 'selected' : '';
-          integrityCaseSelect.innerHTML += `<option value="${c.backendId}" ${selectedAttr}>${c.id}</option>`;
+          integrityCaseSelect.innerHTML += `<option value="${c.backendId}" ${selectedAttr}>${escapeHtml(c.id)}</option>`;
         });
       }
     }
@@ -567,17 +580,17 @@ document.addEventListener('DOMContentLoaded', () => {
       if (activeCase) {
         overviewContainer.innerHTML = `
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-size: 0.95rem;">
-            <p><strong>Case Number:</strong> <span style="font-family: monospace; font-weight: 700; color: var(--primary);">${activeCase.id}</span></p>
-            <p><strong>Lead Investigator:</strong> ${activeCase.investigator} (${activeCase.badge})</p>
-            <p><strong>Agency:</strong> ${activeCase.agency}</p>
-            <p><strong>Suspect/Target:</strong> ${activeCase.suspect}</p>
-            <p><strong>Incident Initiated:</strong> ${activeCase.date}</p>
+            <p><strong>Case Number:</strong> <span style="font-family: monospace; font-weight: 700; color: var(--primary);">${escapeHtml(activeCase.id)}</span></p>
+            <p><strong>Lead Investigator:</strong> ${escapeHtml(activeCase.investigator)} (${escapeHtml(activeCase.badge)})</p>
+            <p><strong>Agency:</strong> ${escapeHtml(activeCase.agency)}</p>
+            <p><strong>Suspect/Target:</strong> ${escapeHtml(activeCase.suspect)}</p>
+            <p><strong>Incident Initiated:</strong> ${escapeHtml(activeCase.date)}</p>
             <p><strong>Security Status:</strong> <span class="badge badge-success">Server-side / Hash-chained</span></p>
           </div>
           <div style="margin-top: 16px; border-top: 1px solid var(--border-color); padding-top: 16px;">
             <p><strong>Case Scope / Description:</strong></p>
             <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 6px; line-height: 1.5; font-style: italic;">
-              "${activeCase.notes}"
+              "${escapeHtml(activeCase.notes)}"
             </p>
           </div>
         `;
@@ -604,11 +617,11 @@ document.addEventListener('DOMContentLoaded', () => {
           return `
             <div style="padding: 12px 16px; border: 1px solid var(--border-color); border-radius: var(--border-radius-sm); margin-bottom: 10px; font-size: 0.85rem;">
               <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-                <span style="font-weight: 700; color: var(--primary); font-family: monospace;">${t.itemId} (${t.itemType})</span>
-                <span style="color: var(--text-light); font-size: 0.75rem;">${localTime}</span>
+                <span style="font-weight: 700; color: var(--primary); font-family: monospace;">${escapeHtml(t.itemId)} (${escapeHtml(t.itemType)})</span>
+                <span style="color: var(--text-light); font-size: 0.75rem;">${escapeHtml(localTime)}</span>
               </div>
-              <p>Released by <strong>${t.releasedBy}</strong> &rarr; Received by <strong>${t.receivedBy}</strong></p>
-              <p style="margin-top: 4px; font-size: 0.8rem; color: var(--text-muted);"><i data-lucide="map-pin" style="width: 12px; height: 12px; display: inline; vertical-align: middle; margin-right: 2px;"></i> Facility: ${t.location} | Purpose: ${t.purpose}</p>
+              <p>Released by <strong>${escapeHtml(t.releasedBy)}</strong> &rarr; Received by <strong>${escapeHtml(t.receivedBy)}</strong></p>
+              <p style="margin-top: 4px; font-size: 0.8rem; color: var(--text-muted);"><i data-lucide="map-pin" style="width: 12px; height: 12px; display: inline; vertical-align: middle; margin-right: 2px;"></i> Facility: ${escapeHtml(t.location)} | Purpose: ${escapeHtml(t.purpose)}</p>
             </div>
           `;
         }).join('');
@@ -655,16 +668,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         return `
           <tr style="${isActive ? 'background-color: var(--primary-light);' : ''}">
-            <td style="font-family: monospace; font-weight: 700;">${c.id}</td>
-            <td>${c.date}</td>
-            <td>${c.investigator} (${c.badge})</td>
-            <td>${c.agency}</td>
-            <td>${c.suspect}</td>
+            <td style="font-family: monospace; font-weight: 700;">${escapeHtml(c.id)}</td>
+            <td>${escapeHtml(c.date)}</td>
+            <td>${escapeHtml(c.investigator)} (${escapeHtml(c.badge)})</td>
+            <td>${escapeHtml(c.agency)}</td>
+            <td>${escapeHtml(c.suspect)}</td>
             <td style="text-align: center; font-weight: 700;">${itemsCount}</td>
             <td>
               <div style="display: flex; gap: 6px; align-items: center;">
                 ${statusBtn}
-                <button class="btn-icon-danger btn-delete-case" data-id="${c.backendId}" data-label="${c.id}" data-count="${itemsCount}" title="Delete case">
+                <button class="btn-icon-danger btn-delete-case" data-id="${c.backendId}" data-label="${escapeHtml(c.id)}" data-count="${itemsCount}" title="Delete case">
                   <i data-lucide="trash-2"></i>
                 </button>
               </div>
@@ -788,18 +801,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         return `
           <tr>
-            <td style="font-family: monospace; font-weight: 700; color: var(--primary);">${item.itemId}</td>
-            <td><strong>${item.type}</strong><br><small style="color: var(--text-muted); font-family: monospace;">S/N: ${item.serial}</small></td>
-            <td><span title="${item.location}" style="display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; max-width: 150px;">${item.location}</span></td>
+            <td style="font-family: monospace; font-weight: 700; color: var(--primary);">${escapeHtml(item.itemId)}</td>
+            <td><strong>${escapeHtml(item.type)}</strong><br><small style="color: var(--text-muted); font-family: monospace;">S/N: ${escapeHtml(item.serial)}</small></td>
+            <td><span title="${escapeHtml(item.location)}" style="display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; max-width: 150px;">${escapeHtml(item.location)}</span></td>
             <td>
-              <div style="font-family: monospace; font-size: 0.75rem; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${item.hash}">
-                ${item.hash}
+              <div style="font-family: monospace; font-size: 0.75rem; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(item.hash)}">
+                ${escapeHtml(item.hash)}
               </div>
             </td>
             <td style="font-size: 0.8rem; white-space: nowrap;" title="${loggedDate.toLocaleString()}">${formattedDate}</td>
-            <td><span class="badge badge-info" style="max-width: 130px;" title="${lastCustodian}"><i data-lucide="user" style="width: 10px; height: 10px; margin-right: 2px; flex-shrink: 0;"></i><span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;">${lastCustodian}</span></span></td>
+            <td><span class="badge badge-info" style="max-width: 130px;" title="${escapeHtml(lastCustodian)}"><i data-lucide="user" style="width: 10px; height: 10px; margin-right: 2px; flex-shrink: 0;"></i><span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;">${escapeHtml(lastCustodian)}</span></span></td>
             <td>
-              <button class="btn-icon-danger btn-delete-evidence" data-id="${item.backendId}" data-label="${item.itemId}" title="Delete evidence item">
+              <button class="btn-icon-danger btn-delete-evidence" data-id="${item.backendId}" data-label="${escapeHtml(item.itemId)}" title="Delete evidence item">
                 <i data-lucide="trash-2"></i>
               </button>
             </td>
@@ -872,7 +885,7 @@ document.addEventListener('DOMContentLoaded', () => {
       ledgerEvidenceSelect.innerHTML = '<option value="" disabled selected>Choose evidence...</option>';
       caseItems.forEach(item => {
         const isSelected = item.itemId === savedSelectedVal ? 'selected' : '';
-        ledgerEvidenceSelect.innerHTML += `<option value="${item.itemId}" ${isSelected}>${item.itemId} - ${item.type}</option>`;
+        ledgerEvidenceSelect.innerHTML += `<option value="${item.itemId}" ${isSelected}>${escapeHtml(item.itemId)} - ${escapeHtml(item.type)}</option>`;
       });
 
       if (savedSelectedVal && caseItems.some(i => i.itemId === savedSelectedVal)) {
@@ -922,11 +935,11 @@ document.addEventListener('DOMContentLoaded', () => {
               sigsHTML = `
                 <div class="timeline-signatures">
                   <div class="timeline-sig-box">
-                    <span>Releasing Signature (${h.releasedBy})</span>
+                    <span>Releasing Signature (${escapeHtml(h.releasedBy)})</span>
                     <img src="${h.releasedSig}" alt="Releasing signature" class="timeline-sig-image">
                   </div>
                   <div class="timeline-sig-box">
-                    <span>Receiving Signature (${h.receivedBy})</span>
+                    <span>Receiving Signature (${escapeHtml(h.receivedBy)})</span>
                     <img src="${h.receivedSig}" alt="Receiving signature" class="timeline-sig-image">
                   </div>
                 </div>
@@ -939,13 +952,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="timeline-content">
                   <div class="timeline-header">
                     <span class="timeline-date">${formattedDate} (Seq #${h.sequence})</span>
-                    <span class="timeline-operator">Handler: <strong>${h.receivedBy}</strong></span>
+                    <span class="timeline-operator">Handler: <strong>${escapeHtml(h.receivedBy)}</strong></span>
                   </div>
                   <div class="timeline-body">
-                    <p><strong>Handoff:</strong> ${isAcquisition ? `Acquired by <strong>${h.releasedBy}</strong>` : `Released by <strong>${h.releasedBy}</strong> to <strong>${h.receivedBy}</strong>`}</p>
-                    <p style="margin-top: 4px;"><strong>Facility Location:</strong> ${h.location}</p>
-                    <p style="margin-top: 4px;"><strong>Reason / Purpose:</strong> ${h.purpose}</p>
-                    ${h.notes ? `<p style="margin-top: 4px; font-size: 0.85rem; font-style: italic; color: var(--text-muted);">Notes: "${h.notes}"</p>` : ''}
+                    <p><strong>Handoff:</strong> ${isAcquisition ? `Acquired by <strong>${escapeHtml(h.releasedBy)}</strong>` : `Released by <strong>${escapeHtml(h.releasedBy)}</strong> to <strong>${escapeHtml(h.receivedBy)}</strong>`}</p>
+                    <p style="margin-top: 4px;"><strong>Facility Location:</strong> ${escapeHtml(h.location)}</p>
+                    <p style="margin-top: 4px;"><strong>Reason / Purpose:</strong> ${escapeHtml(h.purpose)}</p>
+                    ${h.notes ? `<p style="margin-top: 4px; font-size: 0.85rem; font-style: italic; color: var(--text-muted);">Notes: "${escapeHtml(h.notes)}"</p>` : ''}
                   </div>
                   ${sigsHTML}
                 </div>
@@ -977,7 +990,7 @@ document.addEventListener('DOMContentLoaded', () => {
           integrityEvidenceSelect.setAttribute('disabled', 'true');
         } else {
           items.forEach(i => {
-            integrityEvidenceSelect.innerHTML += `<option value="${i.itemId}">${i.itemId} - ${i.type}</option>`;
+            integrityEvidenceSelect.innerHTML += `<option value="${i.itemId}">${escapeHtml(i.itemId)} - ${escapeHtml(i.type)}</option>`;
           });
           integrityEvidenceSelect.removeAttribute('disabled');
         }
@@ -1143,10 +1156,10 @@ document.addEventListener('DOMContentLoaded', () => {
           <tr>
             <td style="text-align: center;">${h.sequence}</td>
             <td style="font-size: 8.5pt;">${new Date(h.timestamp).toLocaleString()}</td>
-            <td>${h.releasedBy}</td>
-            <td>${h.receivedBy}</td>
-            <td>${h.location}</td>
-            <td style="font-size: 8.5pt;">${h.purpose} <br><small style="color: #666; font-style: italic;">"${h.notes}"</small></td>
+            <td>${escapeHtml(h.releasedBy)}</td>
+            <td>${escapeHtml(h.receivedBy)}</td>
+            <td>${escapeHtml(h.location)}</td>
+            <td style="font-size: 8.5pt;">${escapeHtml(h.purpose)} <br><small style="color: #666; font-style: italic;">"${escapeHtml(h.notes)}"</small></td>
             <td>${sigs}</td>
           </tr>
         `;
