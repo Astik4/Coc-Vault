@@ -1,1142 +1,135 @@
-# CoC Vault — Digital Forensics Chain of Custody System
+# CoC Vault — Backend API (Flask / Python)
 
-<p align="center">
-  <strong>A secure web-based digital evidence management and chain-of-custody platform for forensic investigations.</strong>
-</p>
+Flask + SQLite backend for CoC Vault. Same design as before, in Python —
+replaces the frontend's LocalStorage persistence with real server-side
+storage, adds JWT authentication, and **hash-chains every custody log
+entry** so tampering with the database directly is detectable.
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Python-3.11%2B-blue?logo=python" alt="Python">
-  <img src="https://img.shields.io/badge/Flask-3.0.3-black?logo=flask" alt="Flask">
-  <img src="https://img.shields.io/badge/JavaScript-ES6%2B-yellow?logo=javascript" alt="JavaScript">
-  <img src="https://img.shields.io/badge/SQLite-Database-blue?logo=sqlite" alt="SQLite">
-  <img src="https://img.shields.io/badge/JWT-Authentication-purple" alt="JWT">
-  <img src="https://img.shields.io/badge/SHA--256-Integrity-green" alt="SHA-256">
-  <img src="https://img.shields.io/badge/Status-Active-success" alt="Status">
-</p>
+Tested end-to-end: register → login → create case → log evidence →
+transfer custody → verify chain → simulate direct DB tampering with raw
+SQL → confirmed the tamper is caught.
 
 ---
 
-## 📌 Overview
+## How the hash chain works
 
-**CoC Vault** is a web-based Digital Forensics and Incident Response (DFIR) application designed to manage digital evidence throughout its chain of custody.
+Each custody log entry stores:
+- `prev_hash` — the `entry_hash` of the previous entry for that evidence item (or a fixed genesis value `000...0` for the first entry)
+- `entry_hash` — `SHA256(prev_hash + entry's own fields)`, computed in `compute_entry_hash()` in `db.py`
 
-The platform provides investigators with a centralized system for:
-
-* Managing forensic investigation cases
-* Registering digital evidence
-* Generating SHA-256 evidence fingerprints
-* Recording evidence custody transfers
-* Capturing electronic signatures
-* Maintaining a tamper-evident custody ledger
-* Detecting modifications to evidence files
-* Verifying the integrity of custody records
-* Generating investigation reports in PDF format
-* Authenticating investigators using JWT
-* Protecting authentication endpoints with rate limiting
-
-The project combines a **JavaScript frontend**, **Flask REST API**, and **SQLite database** into a lightweight forensic evidence-management platform.
-
-> **Project classification:** Cybersecurity / Digital Forensics / DFIR / Web Security
+`GET /api/evidence/<id>/verify-chain` re-walks every entry in sequence,
+recomputes each hash from scratch, and compares it to what's stored. If
+any field in any past entry was edited directly in the database (bypassing
+the API), every hash after that point stops matching, and the endpoint
+reports exactly which entry broke.
 
 ---
 
-## 🎯 Project Objectives
+## Project layout
 
-CoC Vault was designed around a simple forensic principle:
-
-> Digital evidence should be traceable, verifiable, and accompanied by an auditable record of every custody transfer.
-
-The system therefore addresses two separate integrity questions:
-
-### 1. Evidence Integrity
-
-Was the actual evidence file modified?
-
-CoC Vault calculates a **SHA-256 hash** when evidence is registered and allows investigators to upload the file again later to compare its current hash against the original value.
-
-### 2. Custody Record Integrity
-
-Was the custody history itself modified?
-
-Every custody entry contains a hash linked to the previous custody entry. The backend can reconstruct the entire chain and identify where the chain becomes invalid.
-
-This means an investigator can distinguish between:
-
-```text
-Evidence File Tampering
-        ↓
-SHA-256 mismatch
+```
+app.py              — Flask app setup, blueprint registration, health check
+db.py                — SQLite connection handling, schema, hash-chain helper
+auth_utils.py         — JWT signing/verification, @token_required decorator
+routes/
+  auth.py             — POST /api/auth/register, /api/auth/login
+  cases.py            — GET/POST /api/cases, DELETE /api/cases/<id> (cascades)
+  evidence.py          — GET/POST /api/evidence, transfer + verify-chain, DELETE /api/evidence/<id>
 ```
 
-and:
-
-```text
-Custody Ledger Tampering
-        ↓
-Hash-chain verification failure
-```
+This mirrors a typical Flask app structure — one blueprint per resource,
+same pattern you've used in BOLAHawk/SecurScout.
 
 ---
 
-# ✨ Features
-
-## 🔐 Authentication & Security
-
-* Investigator account registration
-* Secure password hashing using Werkzeug
-* JWT-based authentication
-* Token expiration
-* Protected API routes
-* Generic authentication error messages to reduce username enumeration
-* Authentication endpoint rate limiting
-* Environment-based JWT secret configuration
-* Configurable CORS origins
-
----
-
-## 📁 Case Management
-
-Investigators can create and manage investigation cases containing:
-
-* Case number
-* Lead investigator
-* Badge / investigator ID
-* Agency
-* Suspect / target
-* Incident date
-* Investigation notes
-* Case creation timestamp
-
-Cases can be selected as the active investigation from the frontend.
-
----
-
-## 🧾 Evidence Vault
-
-Evidence items can be registered against a specific case.
-
-Each evidence record can contain:
-
-* Evidence item ID
-* Evidence type
-* Make / model
-* Location discovered
-* Collector
-* SHA-256 file hash
-* Date logged
-* Associated custody history
-
-The system automatically creates an initial acquisition custody entry when evidence is registered.
-
----
-
-## 🔑 SHA-256 Evidence Fingerprinting
-
-CoC Vault uses the browser's native **Web Crypto API** to calculate SHA-256 hashes.
-
-The browser calculates:
-
-```text
-Evidence File
-     │
-     ▼
-Web Crypto API
-     │
-     ▼
-SHA-256
-     │
-     ▼
-Stored Evidence Fingerprint
-```
-
-The original hash becomes the reference value for future integrity verification.
-
----
-
-## 🔄 Chain of Custody
-
-Every custody transfer records information such as:
-
-* Releasing party
-* Receiving party
-* Timestamp
-* Location
-* Purpose
-* Notes
-* Sequence number
-* Previous hash
-* Current entry hash
-* Electronic signatures
-
-A typical custody history therefore resembles:
-
-```text
-Genesis
-   │
-   ▼
-Acquisition
-   │
-   ▼
-Transfer #2
-   │
-   ▼
-Transfer #3
-   │
-   ▼
-Transfer #4
-```
-
-Each entry is cryptographically connected to the previous entry.
-
----
-
-## ⛓️ Tamper-Evident Custody Ledger
-
-The custody ledger uses hash chaining.
-
-Conceptually:
-
-```text
-Hash #1
-  │
-  ├── prev_hash = Genesis
-  │
-  ▼
-Hash #2
-  │
-  ├── prev_hash = Hash #1
-  │
-  ▼
-Hash #3
-  │
-  ├── prev_hash = Hash #2
-  │
-  ▼
-Hash #4
-```
-
-Each custody entry is hashed using its relevant fields and the previous entry's hash.
-
-If an attacker modifies an earlier custody record directly in the database:
-
-```text
-Original:
-
-H1 → H2 → H3 → H4
-
-After modification:
-
-H1' → H2 → H3 → H4
-       ✕
-```
-
-The verification process detects the broken chain and reports the sequence where the inconsistency begins.
-
----
-
-## ✍️ Electronic Signatures
-
-The Custody Ledger provides signature pads for:
-
-* Releasing party
-* Receiving party
-
-Investigators can draw signatures using:
-
-* Mouse
-* Trackpad
-* Touchscreen
-
-The captured signature is stored as part of the custody transfer record.
-
-> **Important:** These signatures are captured as image data and should not be considered cryptographic digital signatures or legally binding non-repudiation mechanisms.
-
----
-
-## 🛡️ Integrity Checker
-
-The application provides two independent integrity checks.
-
-### Evidence File Verification
-
-```text
-Original File
-     │
-     ▼
-Stored SHA-256
-     │
-     ├── MATCH ──► Integrity Secure
-     │
-     └── MISMATCH ► Possible Tampering
-```
-
-### Custody Chain Verification
-
-The backend reconstructs the custody chain and recalculates every entry hash.
-
-If a modification is detected, the API reports:
-
-* Integrity status
-* Broken sequence number
-* Explanation of the detected inconsistency
-
----
-
-## 📄 Investigation Reports
-
-CoC Vault can generate investigation reports containing information such as:
-
-* Case details
-* Evidence metadata
-* SHA-256 fingerprint
-* Custody history
-* Transfer information
-* Signature records
-
-Reports can be:
-
-* Printed
-* Exported as PDF
-
-PDF generation is handled on the frontend using `html2pdf.js`.
-
----
-
-## 🧪 Demo / Test Evidence
-
-The project includes synthetic forensic evidence for demonstration and testing.
-
-Example evidence includes:
-
-```text
-test_evidence/
-├── suspicious_email.eml
-├── system_auth_log.txt
-└── financial_transaction_export.csv
-```
-
-These files simulate scenarios such as:
-
-* Suspicious email activity
-* Authentication attacks
-* Unauthorized access
-* Suspicious financial transactions
-
-The included seeding script can populate the database with a complete demonstration case.
-
----
-
-# 🏗️ Architecture
-
-CoC Vault follows a simple client-server architecture:
-
-```text
-┌──────────────────────────────────────────────┐
-│                  Frontend                    │
-│                                              │
-│ HTML + CSS + JavaScript                     │
-│                                              │
-│ • Authentication UI                          │
-│ • Case Management                             │
-│ • Evidence Vault                              │
-│ • Custody Ledger                              │
-│ • Integrity Checker                           │
-│ • PDF Reports                                 │
-└───────────────────┬──────────────────────────┘
-                    │
-                    │ HTTP / REST API
-                    │ JWT Bearer Token
-                    ▼
-┌──────────────────────────────────────────────┐
-│                  Backend                     │
-│                                              │
-│ Flask REST API                                │
-│                                              │
-│ • Authentication                              │
-│ • Case APIs                                   │
-│ • Evidence APIs                               │
-│ • Custody APIs                                │
-│ • Chain Verification                          │
-│ • Rate Limiting                               │
-└───────────────────┬──────────────────────────┘
-                    │
-                    │ SQL
-                    ▼
-┌──────────────────────────────────────────────┐
-│                  SQLite                      │
-│                                              │
-│ Users                                         │
-│ Cases                                         │
-│ Evidence                                      │
-│ Custody Logs                                  │
-└──────────────────────────────────────────────┘
-```
-
----
-
-# 🧰 Technology Stack
-
-## Frontend
-
-| Technology      | Purpose                                 |
-| --------------- | --------------------------------------- |
-| HTML5           | Application structure                   |
-| CSS3            | UI and responsive styling               |
-| JavaScript      | Application logic                       |
-| Web Crypto API  | SHA-256 hashing                         |
-| Fetch API       | Backend communication                   |
-| Session Storage | Short-lived client authentication state |
-| html2pdf.js     | PDF report generation                   |
-| Lucide          | UI icons                                |
-
-## Backend
-
-| Technology    | Purpose                      |
-| ------------- | ---------------------------- |
-| Python        | Backend programming language |
-| Flask         | REST API framework           |
-| Flask-CORS    | Cross-origin API access      |
-| Flask-Limiter | API rate limiting            |
-| PyJWT         | JWT authentication           |
-| python-dotenv | Environment configuration    |
-| Werkzeug      | Password hashing             |
-| SQLite        | Persistent database          |
-
----
-
-# 📂 Project Structure
-
-```text
-CoC-Vault/
-│
-├── Backend/
-│   ├── app.py
-│   ├── auth_utils.py
-│   ├── db.py
-│   ├── seed_demo_data.py
-│   ├── requirements.txt
-│   │
-│   ├── routes/
-│   │   ├── __init__.py
-│   │   ├── auth.py
-│   │   ├── cases.py
-│   │   └── evidence.py
-│   │
-│   └── test_evidence/
-│       ├── suspicious_email.eml
-│       ├── system_auth_log.txt
-│       └── financial_transaction_export.csv
-│
-├── Frontend/
-│   ├── index.html
-│   ├── app.js
-│   ├── api.js
-│   ├── style.css
-│   └── README.md
-│
-├── USER_GUIDE.md
-└── README.md
-```
-
----
-
-# 🚀 Installation & Setup
-
-## Prerequisites
-
-Make sure the following are installed:
-
-* Python 3.11+
-* pip
-* Node.js / npm
-* Git
-* A modern web browser
-
----
-
-## 1. Clone the Repository
-
-```bash
-git clone https://github.com/Astik4/CoC-Vault.git
-cd CoC-Vault
-```
-
----
-
-## 2. Setup the Backend
-
-```bash
-cd Backend
-```
-
-Create a virtual environment:
-
-### Windows
-
-```powershell
-python -m venv venv
-venv\Scripts\activate
-```
-
-### Linux / macOS
+## Demo / test data
+
+`test_evidence/` contains exactly three realistic synthetic evidence files
+(a spoofed executive email, suspicious auth logs, a flagged transaction
+export) for a simulated Business Email Compromise case. Run
+`python seed_demo_data.py` (with the server already running) to load a
+full demo case — case, evidence, hashes, and one custody transfer — through
+the real API. The script is idempotent: it uses a fixed case number
+(`CASE-DEMO-BEC-2026`) and detects if that case already exists rather than
+creating a duplicate on every run, so you always end up with exactly one
+demo case and 3 evidence items, never a pile-up of repeated demo cases.
+See `USER_GUIDE.md` in the project root for the full walkthrough.
+
+## Setup
 
 ```bash
 python3 -m venv venv
-source venv/bin/activate
-```
-
-Install dependencies:
-
-```bash
+source venv/bin/activate      # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-```
-
----
-
-## 3. Configure Environment Variables
-
-Create your environment file:
-
-```bash
 cp .env.example .env
-```
-
-On Windows PowerShell:
-
-```powershell
-Copy-Item .env.example .env
-```
-
-Configure at minimum:
-
-```env
-JWT_SECRET=replace-with-a-long-random-secret
-PORT=4000
-CORS_ORIGIN=http://localhost:8080,http://127.0.0.1:8080,http://localhost:5500,http://127.0.0.1:5500
-```
-
-### Security Warning
-
-Never commit your real `.env` file or production secrets to GitHub.
-
-Generate a strong random JWT secret for anything beyond local development.
-
----
-
-# ▶️ Running the Application
-
-## Start the Backend
-
-From `Backend/`:
-
-```bash
+# edit .env and set a real JWT_SECRET (any long random string)
 python app.py
 ```
 
-The API runs by default on:
+Server runs on `http://localhost:4000` by default. `coc_vault.db` (SQLite)
+is created automatically on first run.
 
-```text
-http://localhost:4000
-```
+Health check: `GET http://localhost:4000/api/health` → `{"status":"ok"}`
 
-Verify the backend:
+### CORS
 
-```text
-http://localhost:4000/api/health
-```
-
-Expected response:
-
-```json
-{
-  "status": "ok"
-}
-```
+`CORS_ORIGIN` in `.env` accepts a comma-separated list of origins, so the
+frontend works whether you run it via `npx http-server -p 8080`, VS Code's
+Live Server (port 5500), or by opening `index.html` directly (`file://`,
+which sends `Origin: null`). The default value already covers all three —
+add your own origin to the list if you serve the frontend somewhere else.
 
 ---
 
-## Start the Frontend
-
-Open another terminal:
-
-```bash
-cd Frontend
-```
-
-Using `http-server`:
-
-```bash
-npx http-server -p 8080
-```
-
-Then open:
-
-```text
-http://localhost:8080
-```
-
-Alternatively, the frontend can be served using VS Code Live Server.
-
----
-
-# 🧪 Demo Data
-
-To quickly populate the application with realistic synthetic investigation data:
-
-```bash
-cd Backend
-python seed_demo_data.py
-```
-
-The seeder creates a demonstration investigation containing:
-
-* One simulated Business Email Compromise case
-* Three synthetic evidence items
-* A custody transfer
-* Data suitable for testing the Evidence Vault
-* Data suitable for testing the Custody Ledger
-* Data suitable for testing the Integrity Checker
-
-### Demo Account
-
-```text
-Username: demo_investigator
-Password: demo-password-2026
-```
-
-> This account is intended strictly for local demonstration/testing. Do not use these credentials in a deployed environment.
-
-The seed script is designed to be idempotent and avoids creating duplicate demo cases when executed repeatedly.
-
----
-
-# 🔌 API Overview
-
-The Flask backend exposes REST-style endpoints.
-
-## Authentication
-
-```text
-POST /api/auth/register
-POST /api/auth/login
-```
-
-Registration creates an investigator account and returns a JWT.
-
-Login validates the credentials and returns a JWT.
-
----
-
-## Health
-
-```text
-GET /api/health
-```
-
-Used to verify backend availability.
-
----
-
-## Cases
-
-```text
-GET    /api/cases
-POST   /api/cases
-GET    /api/cases/<case_id>
-DELETE /api/cases/<case_id>
-```
-
-Protected by JWT authentication.
-
----
-
-## Evidence
-
-```text
-GET    /api/evidence
-POST   /api/evidence
-DELETE /api/evidence/<evidence_id>
-```
-
-Evidence operations require authentication.
-
----
-
-## Custody Transfers
-
-```text
-POST /api/evidence/<evidence_id>/transfer
-```
-
-Creates a new custody entry and links it cryptographically to the previous entry.
-
----
-
-## Custody Integrity Verification
-
-```text
-GET /api/evidence/<evidence_id>/verify-chain
-```
-
-Recalculates the entire custody chain and reports whether the ledger remains intact.
-
----
-
-# 🔐 Security Design
-
-The project intentionally incorporates several security concepts relevant to cybersecurity and digital forensics.
-
-### Password Security
-
-Passwords are never stored as plaintext.
-
-They are processed using Werkzeug's password hashing implementation.
-
-```text
-Password
-   ↓
-Password Hashing
-   ↓
-Stored Password Hash
-```
-
----
-
-### JWT Authentication
-
-Authenticated API requests use:
-
-```http
-Authorization: Bearer <JWT>
-```
-
-The backend validates:
-
-* Token presence
-* Token signature
-* Token algorithm
-* Token expiration
-
----
-
-### Rate Limiting
-
-Authentication routes are protected with:
-
-```text
-20 requests / 15 minutes
-```
-
-This is intended to reduce brute-force login and registration attempts.
-
----
-
-### Username Enumeration Protection
-
-Login returns the same error message for:
-
-```text
-Unknown username
-```
-
-and:
-
-```text
-Incorrect password
-```
-
-This prevents the API from unnecessarily revealing whether a username exists.
-
----
-
-### CORS Controls
-
-The backend uses an explicit list of allowed frontend origins rather than allowing arbitrary origins.
-
-Origins can be configured using:
-
-```env
-CORS_ORIGIN=
-```
-
----
-
-### Cryptographic Integrity
-
-SHA-256 is used for:
-
-* Evidence fingerprints
-* Custody ledger hash chaining
-
-The system does not treat hashing as encryption. Hashes are used as integrity fingerprints.
-
----
-
-# 🔬 Forensic Workflow
-
-The intended workflow is:
-
-```text
-┌──────────────┐
-│ Authenticate  │
-└──────┬───────┘
-       ▼
-┌──────────────┐
-│ Create Case  │
-└──────┬───────┘
-       ▼
-┌────────────────────┐
-│ Register Evidence  │
-└─────────┬──────────┘
-          ▼
-┌────────────────────┐
-│ Calculate SHA-256   │
-└─────────┬──────────┘
-          ▼
-┌────────────────────┐
-│ Record Acquisition │
-└─────────┬──────────┘
-          ▼
-┌────────────────────┐
-│ Transfer Custody   │
-└─────────┬──────────┘
-          ▼
-┌────────────────────┐
-│ Hash-Chain Ledger  │
-└─────────┬──────────┘
-          ▼
-┌────────────────────┐
-│ Verify Integrity   │
-└─────────┬──────────┘
-          ▼
-┌────────────────────┐
-│ Generate Report    │
-└────────────────────┘
-```
-
----
-
-# 🧠 Threat Model & Security Considerations
-
-CoC Vault is designed primarily as a **portfolio and educational DFIR application**.
-
-It demonstrates important security concepts but does not attempt to solve every requirement of a production forensic evidence-management platform.
-
-### Current protections
-
-* Password hashing
-* JWT authentication
-* Token expiration
-* Authentication rate limiting
-* SHA-256 evidence fingerprinting
-* Tamper-evident custody hash chaining
-* CORS configuration
-* Generic authentication failure responses
-* Protected case/evidence/custody endpoints
-
-### Current limitations
-
-#### 1. No Fine-Grained Authorization
-
-Currently, authenticated investigators can interact with cases without a complete per-user/per-role authorization model.
-
-A production system should enforce:
-
-```text
-User
-  ↓
-Role
-  ↓
-Case Permissions
-  ↓
-Allowed Actions
-```
-
----
-
-#### 2. Electronic Signatures Are Not Cryptographic Signatures
-
-The application captures drawn signatures as image data.
-
-They do not provide:
-
-* Cryptographic signing
-* Certificate-based identity
-* Non-repudiation
-* Qualified electronic signature functionality
-
----
-
-#### 3. SQLite Is Intended for the Demo
-
-SQLite is appropriate for a lightweight local application and demonstration environment.
-
-A production deployment would likely use a more robust database such as:
-
-* PostgreSQL
-* MySQL / MariaDB
-
----
-
-#### 4. Flask Development Server
-
-The project currently uses Flask's development server.
-
-A production deployment should use a production WSGI server such as:
-
-* Gunicorn
-* Waitress
-
-with an appropriate reverse proxy and HTTPS configuration.
-
----
-
-#### 5. Hard Delete
-
-Cases and evidence can currently be deleted.
-
-A production forensic system should generally favor:
-
-```text
-Archive / Void / Close
-```
-
-over permanent deletion in order to preserve the historical audit trail.
-
----
-
-#### 6. Client-Side Evidence Hashing
-
-The initial SHA-256 calculation is performed inside the browser.
-
-For a higher-assurance forensic workflow, production systems should carefully control the acquisition environment and independently verify evidence hashes server-side or through a trusted acquisition workstation.
-
----
-
-# 🗺️ Roadmap
-
-Potential future improvements include:
-
-* [ ] Role-based access control (RBAC)
-* [ ] Per-case authorization
-* [ ] Investigator activity audit logs
-* [ ] Immutable/append-only audit storage
-* [ ] PostgreSQL support
-* [ ] Production WSGI deployment
-* [ ] HTTPS enforcement
-* [ ] Multi-factor authentication
-* [ ] Cryptographic digital signatures
-* [ ] Certificate-based identity
-* [ ] Evidence file server-side verification
-* [ ] Evidence versioning
-* [ ] Case archival instead of hard deletion
-* [ ] Advanced forensic report templates
-* [ ] Automated audit-log monitoring
-* [ ] API documentation with OpenAPI/Swagger
-* [ ] Automated unit and integration testing
-* [ ] CI/CD security checks
-* [ ] Docker deployment
-* [ ] Security logging and alerting
-
----
-
-# 🧪 Testing the Integrity Mechanism
-
-A simple demonstration of the tamper-detection functionality:
-
-### Step 1 — Register a File
-
-Upload a file as evidence.
-
-The application calculates:
-
-```text
-SHA-256(file)
-```
-
-and stores the resulting fingerprint.
-
-### Step 2 — Verify the Original
-
-Upload the same file again.
-
-Expected:
-
-```text
-MATCH
-Integrity Secure
-```
-
-### Step 3 — Modify the File
-
-Change even one character in the file.
-
-### Step 4 — Verify Again
-
-Upload the modified file.
-
-Expected:
-
-```text
-MISMATCH
-Integrity Broken / Tampered
-```
-
-The reason is that cryptographic hashes exhibit an avalanche effect: even a small input modification produces a substantially different digest.
-
----
-
-# 📊 Database Model
-
-The SQLite database contains four primary entities:
-
-```text
-users
-  │
-  │
-  ├──────────────┐
-  │              │
-  ▼              ▼
-cases        authentication
-  │
-  │ 1:N
-  ▼
-evidence
-  │
-  │ 1:N
-  ▼
-custody_log
-```
-
-### Users
-
-Stores investigator account information and password hashes.
+## API Reference
+
+All routes except `/api/health` and `/api/auth/*` require:
+`Authorization: Bearer <token>`
+
+### Auth
+| Method | Route | Body | Notes |
+|---|---|---|---|
+| POST | `/api/auth/register` | `{ username, password, displayName }` | password min 8 chars |
+| POST | `/api/auth/login` | `{ username, password }` | returns `{ token, user }` |
 
 ### Cases
-
-Stores investigation metadata.
+| Method | Route | Body | Notes |
+|---|---|---|---|
+| GET | `/api/cases` | — | |
+| POST | `/api/cases` | `{ caseNumber, leadInvestigator, badgeId, agency, suspect, incidentDate, notes }` | |
+| GET | `/api/cases/<id>` | — | |
+| DELETE | `/api/cases/<id>` | — | Cascades: deletes all evidence under the case and their custody logs. Returns `{ deleted, caseId, evidenceItemsDeleted }`. |
 
 ### Evidence
+| Method | Route | Body | Notes |
+|---|---|---|---|
+| GET | `/api/evidence?caseId=...` | — | caseId optional filter |
+| POST | `/api/evidence` | `{ caseId, itemId, evidenceType, makeModel, locationFound, collectedBy, fileHash }` | |
+| POST | `/api/evidence/<evidenceId>/transfer` | `{ releasedBy, receivedBy, releasedSig, receivedSig, location, purpose, notes }` | |
+| GET | `/api/evidence/<evidenceId>/verify-chain` | — | returns `{ intact, message, brokenAtSequence? }` |
+| DELETE | `/api/evidence/<evidenceId>` | — | Deletes the item and its full custody log. Returns `{ deleted, evidenceId }`. |
 
-Stores evidence metadata and its original SHA-256 fingerprint.
-
-### Custody Log
-
-Stores chronological custody transfers and the cryptographic hash chain.
-
----
-
-# 📸 Screenshots
-
-Recommended screenshots for the repository:
-
-### Login
-
-```text
-Add screenshot here
-```
-
-### Case Management
-
-```text
-Add screenshot here
-```
-
-### Evidence Vault
-
-```text
-Add screenshot here
-```
-
-### Custody Ledger
-
-```text
-Add screenshot here
-```
-
-### Integrity Checker
-
-```text
-Add screenshot here
-```
-
-### Generated Report
-
-```text
-Add screenshot here
-```
-
-> For a professional GitHub repository, screenshots are strongly recommended because they let recruiters understand the application without running it first.
+The frontend's `api.js` already points at these exact routes — no frontend
+changes are needed switching from the Node version to this one, only the
+backend you run.
 
 ---
 
-# 📚 Documentation
+## Why Flask instead of Node here
 
-Additional documentation is available inside the repository:
-
-* `USER_GUIDE.md` — complete application usage guide
-* `Backend/README.md` — backend architecture and API documentation
-* `Frontend/README.md` — frontend architecture and testing workflow
-
----
-
-# 🎓 Learning Outcomes
-
-This project demonstrates practical experience with:
-
-* Digital forensics concepts
-* Chain-of-custody management
-* Cryptographic hashing
-* Hash chaining
-* REST API development
-* JWT authentication
-* Password security
-* API rate limiting
-* CORS configuration
-* SQLite database design
-* Frontend/backend integration
-* Browser Web Crypto API
-* Secure session handling
-* Evidence integrity verification
-* Security-oriented application architecture
+The frontend (HTML/CSS/JS) has to be JavaScript no matter what — that's a
+browser requirement, not a choice. But the backend didn't have to be, and
+Flask matches the stack used across BOLAHawk, SecurScout, and LifeFlow, so
+this project's backend is something you can actually read, modify, and
+explain in an interview — which matters more than which framework looks
+more "impressive" on paper.
 
 ---
 
-# ⚠️ Disclaimer
+## Security notes (student project scope, not production-hardened)
 
-CoC Vault is an **educational and portfolio project** intended to demonstrate digital-forensics workflows, web security concepts, cryptographic integrity mechanisms, and secure application development.
-
-It should **not be treated as a certified forensic evidence-management system or relied upon as the sole system of record for real criminal, civil, regulatory, or legal investigations** without appropriate security review, forensic validation, legal review, operational controls, and compliance requirements.
-
----
-
-# 👨‍💻 Author
-
-**Astik Gupta**
-
-B.Tech Computer Science Engineering
-Cybersecurity Specialization
-
-Interests:
-
-* Cybersecurity
-* Penetration Testing
-* Red Teaming
-* Digital Forensics
-* Incident Response
-* Web Application Security
-
----
-
-# 📄 License
-
-No open-source license has been specified for this repository yet.
-
-If you intend to allow others to freely use, modify, and distribute the project, consider adding an appropriate license such as the **MIT License**.
-
----
-
-<p align="center">
-  <strong>CoC Vault</strong><br>
-  Digital Evidence • Cryptographic Integrity • Chain of Custody
-</p>
+- Passwords hashed with Werkzeug's `generate_password_hash` (scrypt-based, salted) — never stored plaintext.
+- JWT expires after 8 hours.
+- Basic rate limiting on `/api/auth/*` (20 requests / 15 min) via Flask-Limiter.
+- Case and evidence delete are hard deletes with server-side cascade (deleting a case also deletes its evidence and custody logs) — there's no "trash"/undo, so the frontend confirms before calling these routes.
+- **Not yet done, worth adding if you keep building this:** per-case access control (any logged-in user can currently see, edit, and delete any case), soft-delete/archival instead of hard delete, HTTPS enforcement in production, refresh tokens, a production WSGI server (the built-in `app.run()` server says so itself — use gunicorn/waitress for real deployment), audit logging of *who* queried or deleted what.
