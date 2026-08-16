@@ -1,44 +1,7 @@
-# ============================================================
-# CoC Vault — Root-level .gitignore
-# ============================================================
-
-# ---- Python / Backend ----
-Backend/__pycache__/
-Backend/*.pyc
-Backend/*.pyo
-Backend/venv/
-Backend/env/
-Backend/.env
-Backend/coc_vault.db
-Backend/*.log
-Backend/*.db-shm
-Backend/*.db-wal
-Backend/instance/
-
-# ---- Node / Frontend ----
-Frontend/node_modules/
-
-# ---- OS / Editor junk ----
-.DS_Store
-Thumbs.db
-desktop.ini
-*.swp
-*.swo
-.idea/
-.vscode/settings.json
-*.suo
-*.user
-
-# ---- Secrets & credentials ----
-*.pem
-*.key
-*.p12
-*.pfx
+__pycache__/
+*.pyc
+venv/
+env/
+coc_vault.db
 .env
-.env.*
-!.env.example
-
-# ---- Build artifacts ----
-dist/
-build/
-*.egg-info/
+*.log
