@@ -1,4 +1,4 @@
-# CoC Vault — Backend API (Flask / Python)
+# CoC Vault 
 
 Flask + SQLite backend for CoC Vault. Same design as before, in Python —
 replaces the frontend's LocalStorage persistence with real server-side
