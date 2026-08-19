@@ -22,7 +22,7 @@ import requests
 import hashlib
 import os
 
-API_BASE = "http://localhost:4000/api"
+API_BASE = "https://coc-vault-backend.onrender.com/api"
 TEST_EVIDENCE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test_evidence")
 
 DEMO_USERNAME = "demo_investigator"
