@@ -11,8 +11,6 @@ from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from dotenv import load_dotenv
-
-from Backend import db
 from db import init_db, close_db
 from routes.auth import auth_bp
 from routes.cases import cases_bp
