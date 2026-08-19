@@ -12,6 +12,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from dotenv import load_dotenv
 
+from Backend import db
 from db import init_db, close_db
 from routes.auth import auth_bp
 from routes.cases import cases_bp
@@ -20,6 +21,7 @@ from routes.evidence import evidence_bp
 load_dotenv()
 
 app = Flask(__name__)
+init_db()
 
 # CORS_ORIGIN in .env can be a single origin or a comma-separated list.
 # Defaults cover every way people commonly run the frontend locally:
