@@ -6,7 +6,7 @@
    deploy the backend (Render/Railway/etc), change this to that URL.
    ========================================================================== */
 
-const API_BASE = 'http://localhost:4000/api';
+const API_BASE ='https://coc-vault-backend.onrender.com/api';
 
 // Token lives in memory + sessionStorage (cleared when the tab closes).
 // LocalStorage is avoided for the token since it persists indefinitely and
